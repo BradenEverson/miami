@@ -109,7 +109,7 @@ mod tests {
             chunk_types::HEADER_CHUNK,
             parsed::header::{Division, Format, HeaderChunk, SmpteTicks},
         },
-        reader::{MidiReadable, Yieldable},
+        reader::{MidiReadable, MidiStream, Yieldable},
         Chunk,
     };
 
@@ -151,15 +151,12 @@ mod tests {
             .get_midi_bytes()
             .expect("Get `run.midi` file and stream bytes");
 
-        let header_bytes = data.get(8);
-        let header = u64::from_be_bytes(header_bytes.try_into().unwrap());
+        let (header, payload) = data.read_chunk_data_pair().expect("Get chunk and data");
 
         let header: Chunk = header.into();
         assert_eq!(header, HEADER_CHUNK_RAW);
 
         // Now we try reading the next 6 bytes as [u16; 3]
-        let payload = data.get(header.len());
-
         let mut payload = payload.iter();
         let mut packets = vec![];
         while let Some(first) = payload.next() {
@@ -171,6 +168,7 @@ mod tests {
         }
 
         assert!(packets.len() == 3);
+
         let header_chunk = HeaderChunk::try_from((packets[0], packets[1], packets[2]))
             .expect("Parse header chunk from payload packets");
         let expected = HeaderChunk {

@@ -7,13 +7,18 @@ use std::{
     path::Path,
 };
 
+use crate::Chunk;
+
 /// Trait that allows certain amount of bytes to be yielded by an iterator
 pub trait Yieldable<T> {
     /// Gets a certain number of elements while advancing the iterator
     fn get(&mut self, n: usize) -> Vec<T>;
 }
 
-impl<ITER: Iterator> Yieldable<ITER::Item> for ITER {
+impl<ITER> Yieldable<ITER::Item> for ITER
+where
+    ITER: Iterator,
+{
     #[allow(if_let_rescope)]
     fn get(&mut self, n: usize) -> Vec<ITER::Item> {
         let mut elements = Vec::with_capacity(n);
@@ -25,6 +30,38 @@ impl<ITER: Iterator> Yieldable<ITER::Item> for ITER {
             }
         }
         elements
+    }
+}
+
+/// Trait for reading sequential chunks from a MIDI stream
+pub trait MidiStream {
+    /// Reads the next chunk from the sequence and the data associated with it, fails if there
+    /// isn't enough data left to read a full chunk or read a payload
+    fn read_chunk_data_pair(&mut self) -> Option<(Chunk, Vec<u8>)>;
+}
+
+impl<MIDI> MidiStream for MIDI
+where
+    MIDI: Iterator<Item = u8>,
+{
+    fn read_chunk_data_pair(&mut self) -> Option<(Chunk, Vec<u8>)> {
+        let chunk_packet = self.get(8);
+
+        if chunk_packet.len() != 8 {
+            return None;
+        }
+
+        // UNWRAP Safety: We verify the chunk packet is 8 bytes before
+        let chunk = u64::from_be_bytes(chunk_packet.try_into().unwrap());
+        let chunk: Chunk = chunk.into();
+
+        let data = self.get(chunk.len());
+
+        if data.len() != chunk.len() {
+            return None;
+        }
+
+        Some((chunk, data))
     }
 }
 
