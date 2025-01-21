@@ -3,8 +3,11 @@
 /// Header chunk data, including format, ntrks and division as 3 16 bit unsigned integers
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HeaderChunk {
+    /// The MIDI format
     format: Format,
+    /// Number of tracks
     ntrks: u16,
+    /// Time signature/division
     division: Division,
 }
 
@@ -109,7 +112,7 @@ mod tests {
             chunk_types::HEADER_CHUNK,
             parsed::header::{Division, Format, HeaderChunk, SmpteTicks},
         },
-        reader::{MidiReadable, MidiStream, Yieldable},
+        reader::{MidiReadable, MidiStream},
         Chunk,
     };
 

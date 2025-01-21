@@ -11,13 +11,18 @@ pub struct Chunk {
     /// 4 character ASCII chunk type
     pub chunk_type: [char; 4],
     /// Length of the data that follows
-    len: u32,
+    length: u32,
 }
 
 impl Chunk {
     /// Gets the length of the chunk as a usize
     pub fn len(&self) -> usize {
-        self.len as usize
+        self.length as usize
+    }
+
+    /// Returns if the chunk has no attributed data
+    pub fn is_empty(&self) -> bool {
+        self.length == 0
     }
 }
 
@@ -33,7 +38,7 @@ impl From<u64> for Chunk {
 
         Self {
             chunk_type: [a, b, c, d],
-            len: low,
+            length: low,
         }
     }
 }
@@ -47,7 +52,7 @@ mod tests {
         let message = 0x74657374_0000000au64;
         let expected = Chunk {
             chunk_type: ['t', 'e', 's', 't'],
-            len: 10,
+            length: 10,
         };
 
         assert_eq!(expected, message.into())
