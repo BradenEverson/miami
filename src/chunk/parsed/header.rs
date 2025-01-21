@@ -104,7 +104,7 @@ impl From<u16> for Division {
 mod tests {
     const HEADER_CHUNK_RAW: Chunk = Chunk {
         chunk_type: HEADER_CHUNK,
-        len: 6,
+        length: 6,
     };
 
     use crate::{
