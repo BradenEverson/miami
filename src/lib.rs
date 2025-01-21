@@ -2,6 +2,7 @@
 //! systems and webassembly
 
 pub mod chunk;
+pub mod reader;
 
 /// A MIDI Chunk.
 /// MIDI Chunks are composed of a 4 character type and a 32-bit length
@@ -10,7 +11,14 @@ pub struct Chunk {
     /// 4 character ASCII chunk type
     pub chunk_type: [char; 4],
     /// Length of the data that follows
-    pub len: u32,
+    len: u32,
+}
+
+impl Chunk {
+    /// Gets the length of the chunk as a usize
+    pub fn len(&self) -> usize {
+        self.len as usize
+    }
 }
 
 impl From<u64> for Chunk {
