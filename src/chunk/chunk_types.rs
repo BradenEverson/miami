@@ -9,4 +9,4 @@ macro_rules! chunk_type {
 }
 
 chunk_type!(HEADER_CHUNK, 'M', 'T', 'h', 'd');
-chunk_type!(TRACK_DATA, 'M', 'T', 'r', 'k');
+chunk_type!(TRACK_DATA_CHUNK, 'M', 'T', 'r', 'k');
