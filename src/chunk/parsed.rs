@@ -1,6 +1,7 @@
 //! Parsed Chunk Enum type
 
 use header::{HeaderChunk, InvalidFormat};
+use track::{MTrkEvent, TrackChunk};
 
 use crate::{
     chunk::chunk_types::{HEADER_CHUNK, TRACK_DATA_CHUNK},
@@ -8,12 +9,15 @@ use crate::{
 };
 
 pub mod header;
+pub mod track;
 
 /// A chunk's type paired with it's data
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ParsedChunk {
     /// A header chunk
     Header(HeaderChunk),
+    /// A track chunk,
+    Track(TrackChunk),
 }
 
 /// Error type for attempting to parse from a raw chunk to a parsed one
@@ -46,7 +50,11 @@ impl TryFrom<(Chunk, Vec<u8>)> for ParsedChunk {
                 Err(ChunkParseError::InvalidFormat(InvalidFormat))
             }
 
-            TRACK_DATA_CHUNK => Err(ChunkParseError::Todo("Parse Track Data Chunk")),
+            TRACK_DATA_CHUNK => {
+                let mut data = data.into_iter();
+                let track_chunk = MTrkEvent::from(&mut data);
+                Err(ChunkParseError::Todo("Parse Track Data Chunk"))
+            }
 
             _ => Err(ChunkParseError::UnknownType),
         }
