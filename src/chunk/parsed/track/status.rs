@@ -1,5 +1,7 @@
 //! Status parsing trait and implementation
 
+use thiserror::Error;
+
 use crate::reader::Yieldable;
 
 /// A MIDI Message Status
@@ -31,8 +33,9 @@ pub enum MidiStatus {
 }
 
 /// Error type for an unsupported error type
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct UnsupportedStatusCode;
+#[derive(Error, Debug, Clone, Copy, PartialEq)]
+#[error("Unsupported Status Code {0}")]
+pub struct UnsupportedStatusCode(u8);
 
 /// Wrapper around iterator to prevent trait implementation sillyness
 pub struct IteratorWrapper<T>(pub T);
@@ -105,7 +108,7 @@ where
                 Ok(Self::PitchWheelChange(channel, result))
             }
 
-            _ => Err(UnsupportedStatusCode),
+            code => Err(UnsupportedStatusCode(code)),
         }
     }
 }
@@ -130,6 +133,8 @@ pub struct ControlChange {
 
 #[cfg(test)]
 mod tests {
+    use crate::chunk::parsed::track::status::UnsupportedStatusCode;
+
     use super::{IteratorWrapper, MidiStatus, NoteMeta};
 
     #[test]
@@ -145,5 +150,16 @@ mod tests {
         let expected = MidiStatus::NoteOff(0x0F, NoteMeta { key, velocity });
 
         assert_eq!(status, expected)
+    }
+
+    #[test]
+    fn midi_event_status_parsing_fails_on_invalid_status() {
+        let status_channel = 0b00101111;
+        let key = 0b01010101;
+        let velocity = 0b11111111;
+
+        let mut stream = [status_channel, key, velocity].into_iter();
+        let status = MidiStatus::try_from(IteratorWrapper(&mut stream));
+        assert_eq!(status, Err(UnsupportedStatusCode(0b0010)));
     }
 }
