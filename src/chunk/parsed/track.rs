@@ -1,6 +1,6 @@
 //! Track chunk data enums and structs
 
-use status::{IteratorWrapper, MidiStatus, UnsupportedStatusCode};
+use status::{IteratorWrapper, MidiEvent, UnsupportedStatusCode};
 use thiserror::Error;
 
 pub mod status;
@@ -152,30 +152,16 @@ where
     }
 }
 
-/// A MIDI channel message
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct MidiEvent;
-
-impl<ITER> TryFrom<IteratorWrapper<ITER>> for MidiEvent
-where
-    ITER: Iterator<Item = u8>,
-{
-    type Error = TrackError;
-    fn try_from(value: IteratorWrapper<ITER>) -> Result<Self, Self::Error> {
-        todo!("Parse MIDI Event")
-    }
-}
-
 /// A midi system exclusize event message
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SysexEvent;
 
-impl<ITER> TryFrom<IteratorWrapper<ITER>> for SysexEvent
+impl<ITER> TryFrom<IteratorWrapper<&mut ITER>> for SysexEvent
 where
     ITER: Iterator<Item = u8>,
 {
     type Error = TrackError;
-    fn try_from(value: IteratorWrapper<ITER>) -> Result<Self, Self::Error> {
+    fn try_from(value: IteratorWrapper<&mut ITER>) -> Result<Self, Self::Error> {
         todo!("Parse System Exclusive Event")
     }
 }
@@ -184,12 +170,12 @@ where
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct MetaEvent;
 
-impl<ITER> TryFrom<IteratorWrapper<ITER>> for MetaEvent
+impl<ITER> TryFrom<IteratorWrapper<&mut ITER>> for MetaEvent
 where
     ITER: Iterator<Item = u8>,
 {
     type Error = TrackError;
-    fn try_from(value: IteratorWrapper<ITER>) -> Result<Self, Self::Error> {
+    fn try_from(value: IteratorWrapper<&mut ITER>) -> Result<Self, Self::Error> {
         todo!("Parse Meta Event")
     }
 }

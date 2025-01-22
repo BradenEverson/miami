@@ -4,9 +4,9 @@ use thiserror::Error;
 
 use crate::reader::Yieldable;
 
-/// A MIDI Message Status
+/// A MIDI Message Event
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum MidiStatus {
+pub enum MidiEvent {
     /// Turn Off event
     /// This message is sent whena  note is released
     NoteOff(u8, NoteMeta),
@@ -39,7 +39,7 @@ pub struct UnsupportedStatusCode(u8);
 
 /// Wrapper around iterator to prevent trait implementation sillyness
 pub struct IteratorWrapper<T>(pub T);
-impl<ITER> TryFrom<IteratorWrapper<&mut ITER>> for MidiStatus
+impl<ITER> TryFrom<IteratorWrapper<&mut ITER>> for MidiEvent
 where
     ITER: Iterator<Item = u8>,
 {
@@ -135,7 +135,7 @@ pub struct ControlChange {
 mod tests {
     use crate::chunk::parsed::track::status::UnsupportedStatusCode;
 
-    use super::{IteratorWrapper, MidiStatus, NoteMeta};
+    use super::{IteratorWrapper, MidiEvent, NoteMeta};
 
     #[test]
     fn midi_event_status_parsing() {
@@ -145,9 +145,9 @@ mod tests {
 
         let mut stream = [status_channel, key, velocity].into_iter();
         let status =
-            MidiStatus::try_from(IteratorWrapper(&mut stream)).expect("Parse off note signal");
+            MidiEvent::try_from(IteratorWrapper(&mut stream)).expect("Parse off note signal");
 
-        let expected = MidiStatus::NoteOff(0x0F, NoteMeta { key, velocity });
+        let expected = MidiEvent::NoteOff(0x0F, NoteMeta { key, velocity });
 
         assert_eq!(status, expected)
     }
@@ -159,7 +159,7 @@ mod tests {
         let velocity = 0b11111111;
 
         let mut stream = [status_channel, key, velocity].into_iter();
-        let status = MidiStatus::try_from(IteratorWrapper(&mut stream));
+        let status = MidiEvent::try_from(IteratorWrapper(&mut stream));
         assert_eq!(status, Err(UnsupportedStatusCode(0b0010)));
     }
 }
