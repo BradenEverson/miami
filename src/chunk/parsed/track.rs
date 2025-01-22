@@ -61,18 +61,21 @@ where
     type Error = TrackError;
     fn try_from(value: IteratorWrapper<&mut ITER>) -> Result<Self, Self::Error> {
         let value = value.0;
-        let dt = MTrkEvent::get_delta_time(value);
 
-        Ok(MTrkEvent {
-            delta_time: dt,
-            event: Event::MidiEvent(MidiEvent),
-        })
+        if let Some(dt) = MTrkEvent::get_delta_time(value) {
+            Ok(MTrkEvent {
+                delta_time: dt,
+                event: Event::MidiEvent(MidiEvent),
+            })
+        } else {
+            Err(TrackError::EOF)
+        }
     }
 }
 
 impl MTrkEvent {
     /// Gets the delta time as a variable length
-    pub fn get_delta_time<ITER: Iterator<Item = u8>>(iter: &mut ITER) -> u32 {
+    pub fn get_delta_time<ITER: Iterator<Item = u8>>(iter: &mut ITER) -> Option<u32> {
         let mut time_bytes = vec![];
 
         // Collect from iterator until delta time bytes are done
@@ -88,6 +91,11 @@ impl MTrkEvent {
         }
 
         const MASK: u8 = 0x7F;
+
+        if time_bytes.len() == 0 {
+            return None;
+        }
+
         // Concat all bytes together
         let mut result: u32 = 0;
         for byte in time_bytes {
@@ -95,7 +103,7 @@ impl MTrkEvent {
             result |= (byte & MASK) as u32;
         }
 
-        result
+        Some(result)
     }
 
     /// Returns true if the msb of a byte is 1
