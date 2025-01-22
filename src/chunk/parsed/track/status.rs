@@ -35,7 +35,7 @@ pub enum MidiStatus {
 pub struct UnsupportedStatusCode;
 
 /// Wrapper around iterator to prevent trait implementation sillyness
-pub struct IteratorWrapper<T>(T);
+pub struct IteratorWrapper<T>(pub T);
 impl<ITER> TryFrom<IteratorWrapper<&mut ITER>> for MidiStatus
 where
     ITER: Iterator<Item = u8>,

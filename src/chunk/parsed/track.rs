@@ -1,11 +1,31 @@
 //! Track chunk data enums and structs
 
+use status::IteratorWrapper;
+
 pub mod status;
 
 /// A track chunk, containing one or more MTrk events
 #[derive(Debug, Clone, PartialEq)]
 pub struct TrackChunk {
     mtrk_events: Vec<MTrkEvent>,
+}
+
+impl TryFrom<Vec<u8>> for TrackChunk {
+    type Error = TrackError;
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        let mut value = value.into_iter();
+        let mut mtrk_events = vec![];
+
+        loop {
+            match MTrkEvent::try_from(IteratorWrapper(&mut value)) {
+                Ok(new_track) => mtrk_events.push(new_track),
+                Err(TrackError::OutOfSpace) => break,
+                Err(e) => return Err(e),
+            }
+        }
+
+        Ok(Self { mtrk_events })
+    }
 }
 
 /// A MIDI Event with a DeltaTime and an attached Event
@@ -18,17 +38,26 @@ pub struct MTrkEvent {
     event: Event,
 }
 
-impl<ITER> From<&mut ITER> for MTrkEvent
+/// Error types from parsing a track
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum TrackError {
+    OutOfSpace,
+    InvalidFormat,
+}
+
+impl<ITER> TryFrom<IteratorWrapper<&mut ITER>> for MTrkEvent
 where
     ITER: Iterator<Item = u8>,
 {
-    fn from(value: &mut ITER) -> Self {
+    type Error = TrackError;
+    fn try_from(value: IteratorWrapper<&mut ITER>) -> Result<Self, Self::Error> {
+        let value = value.0;
         let dt = MTrkEvent::get_delta_time(value);
 
-        MTrkEvent {
+        Ok(MTrkEvent {
             delta_time: dt,
             event: Event::MidiEvent(MidiEvent),
-        }
+        })
     }
 }
 
