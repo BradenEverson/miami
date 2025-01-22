@@ -1,9 +1,26 @@
 //! Track chunk data enums and structs
 
-use status::IteratorWrapper;
+use status::{IteratorWrapper, MidiStatus, UnsupportedStatusCode};
 use thiserror::Error;
 
 pub mod status;
+
+/// Error types from parsing a track
+#[derive(Error, Debug, Clone, Copy, PartialEq)]
+pub enum TrackError {
+    /// End of File Marker, ends the iterator
+    #[error("Reached end of line at end of parsing")]
+    EOF,
+    /// End of file while parsing Marker
+    #[error("Reached end of chunk before done parsing")]
+    OutOfSpace,
+    /// Invalid chunk format
+    #[error("Invalid Track Format")]
+    InvalidFormat,
+    /// MIDI Channel Event status code is invalid
+    #[error("Invalid Status Code for MIDI Channel Event {0}")]
+    UnsupportedStatusCode(#[from] UnsupportedStatusCode),
+}
 
 /// A track chunk, containing one or more MTrk events
 #[derive(Debug, Clone, PartialEq)]
@@ -40,20 +57,6 @@ pub struct MTrkEvent {
     event: Event,
 }
 
-/// Error types from parsing a track
-#[derive(Error, Debug, Clone, Copy, PartialEq)]
-pub enum TrackError {
-    /// End of File Marker, ends the iterator
-    #[error("Reached end of line at end of parsing")]
-    EOF,
-    /// End of file while parsing Marker
-    #[error("Reached end of chunk before done parsing")]
-    OutOfSpace,
-    /// Invalid chunk format
-    #[error("Invalid Track Format")]
-    InvalidFormat,
-}
-
 impl<ITER> TryFrom<IteratorWrapper<&mut ITER>> for MTrkEvent
 where
     ITER: Iterator<Item = u8>,
@@ -62,10 +65,10 @@ where
     fn try_from(value: IteratorWrapper<&mut ITER>) -> Result<Self, Self::Error> {
         let value = value.0;
 
-        if let Some(dt) = MTrkEvent::get_delta_time(value) {
+        if let Some(dt) = MTrkEvent::try_get_delta_time(value) {
             Ok(MTrkEvent {
                 delta_time: dt,
-                event: Event::MidiEvent(MidiEvent),
+                event: Event::try_from(IteratorWrapper(value))?,
             })
         } else {
             Err(TrackError::EOF)
@@ -75,7 +78,7 @@ where
 
 impl MTrkEvent {
     /// Gets the delta time as a variable length
-    pub fn get_delta_time<ITER: Iterator<Item = u8>>(iter: &mut ITER) -> Option<u32> {
+    pub fn try_get_delta_time<ITER: Iterator<Item = u8>>(iter: &mut ITER) -> Option<u32> {
         let mut time_bytes = vec![];
 
         // Collect from iterator until delta time bytes are done
@@ -92,7 +95,7 @@ impl MTrkEvent {
 
         const MASK: u8 = 0x7F;
 
-        if time_bytes.len() == 0 {
+        if time_bytes.is_empty() {
             return None;
         }
 
@@ -123,17 +126,73 @@ pub enum Event {
     MetaEvent(MetaEvent),
 }
 
+impl<ITER> TryFrom<IteratorWrapper<&mut ITER>> for Event
+where
+    ITER: Iterator<Item = u8>,
+{
+    type Error = TrackError;
+    fn try_from(value: IteratorWrapper<&mut ITER>) -> Result<Self, Self::Error> {
+        let mut peek = value.0.peekable();
+
+        let prefix = peek.next().ok_or(TrackError::OutOfSpace)?;
+
+        match prefix {
+            status if (0x80..=0xEF).contains(&status) => {
+                Ok(Event::MidiEvent(MidiEvent::try_from(value)?))
+            }
+
+            system if (0xF0..0xFF).contains(&system) => {
+                Ok(Event::SysexEvent(SysexEvent::try_from(value)?))
+            }
+
+            0xFF => Ok(Event::MetaEvent(MetaEvent::try_from(value)?)),
+
+            _ => Err(TrackError::InvalidFormat),
+        }
+    }
+}
+
 /// A MIDI channel message
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct MidiEvent;
+
+impl<ITER> TryFrom<IteratorWrapper<ITER>> for MidiEvent
+where
+    ITER: Iterator<Item = u8>,
+{
+    type Error = TrackError;
+    fn try_from(value: IteratorWrapper<ITER>) -> Result<Self, Self::Error> {
+        todo!("Parse MIDI Event")
+    }
+}
 
 /// A midi system exclusize event message
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SysexEvent;
 
+impl<ITER> TryFrom<IteratorWrapper<ITER>> for SysexEvent
+where
+    ITER: Iterator<Item = u8>,
+{
+    type Error = TrackError;
+    fn try_from(value: IteratorWrapper<ITER>) -> Result<Self, Self::Error> {
+        todo!("Parse System Exclusive Event")
+    }
+}
+
 /// A meta level event
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct MetaEvent;
+
+impl<ITER> TryFrom<IteratorWrapper<ITER>> for MetaEvent
+where
+    ITER: Iterator<Item = u8>,
+{
+    type Error = TrackError;
+    fn try_from(value: IteratorWrapper<ITER>) -> Result<Self, Self::Error> {
+        todo!("Parse Meta Event")
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -143,8 +202,8 @@ mod tests {
     fn delta_time_parsed() {
         let bytes = vec![0x81, 0x40];
         let mut bytes = bytes.into_iter();
-        let result = MTrkEvent::get_delta_time(&mut bytes);
+        let result = MTrkEvent::try_get_delta_time(&mut bytes);
 
-        assert_eq!(result, 192)
+        assert_eq!(result, Some(192))
     }
 }
