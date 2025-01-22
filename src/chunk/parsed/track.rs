@@ -1,12 +1,14 @@
 //! Track chunk data enums and structs
 
 use status::IteratorWrapper;
+use thiserror::Error;
 
 pub mod status;
 
 /// A track chunk, containing one or more MTrk events
 #[derive(Debug, Clone, PartialEq)]
 pub struct TrackChunk {
+    /// All associated track events to this chunk
     mtrk_events: Vec<MTrkEvent>,
 }
 
@@ -19,7 +21,7 @@ impl TryFrom<Vec<u8>> for TrackChunk {
         loop {
             match MTrkEvent::try_from(IteratorWrapper(&mut value)) {
                 Ok(new_track) => mtrk_events.push(new_track),
-                Err(TrackError::OutOfSpace) => break,
+                Err(TrackError::EOF) => break,
                 Err(e) => return Err(e),
             }
         }
@@ -39,9 +41,16 @@ pub struct MTrkEvent {
 }
 
 /// Error types from parsing a track
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Error, Debug, Clone, Copy, PartialEq)]
 pub enum TrackError {
+    /// End of File Marker, ends the iterator
+    #[error("Reached end of line at end of parsing")]
+    EOF,
+    /// End of file while parsing Marker
+    #[error("Reached end of chunk before done parsing")]
     OutOfSpace,
+    /// Invalid chunk format
+    #[error("Invalid Track Format")]
     InvalidFormat,
 }
 
@@ -67,7 +76,7 @@ impl MTrkEvent {
         let mut time_bytes = vec![];
 
         // Collect from iterator until delta time bytes are done
-        while let Some(byte) = iter.next() {
+        for byte in iter.by_ref() {
             // Check if msb is 1, if not then this is the last delta time
             let msb_one = MTrkEvent::msb_is_one(byte);
 

@@ -1,5 +1,7 @@
 //! Header Chunk Enum and Struct Definitions
 
+use thiserror::Error;
+
 /// Header chunk data, including format, ntrks and division as 3 16 bit unsigned integers
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HeaderChunk {
@@ -37,7 +39,8 @@ pub enum Format {
 }
 
 /// Error struct representing an invalid format specifier
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
+#[error("Invalid header format")]
 pub struct InvalidFormat;
 
 impl TryFrom<u16> for Format {

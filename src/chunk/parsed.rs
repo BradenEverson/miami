@@ -1,7 +1,8 @@
 //! Parsed Chunk Enum type
 
 use header::{HeaderChunk, InvalidFormat};
-use track::{MTrkEvent, TrackChunk};
+use thiserror::Error;
+use track::TrackChunk;
 
 use crate::{
     chunk::chunk_types::{HEADER_CHUNK, TRACK_DATA_CHUNK},
@@ -21,14 +22,20 @@ pub enum ParsedChunk {
 }
 
 /// Error type for attempting to parse from a raw chunk to a parsed one
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ChunkParseError {
     /// Invalid format in parsing a header
-    InvalidFormat(InvalidFormat),
+    #[error("Invalid Format Specified")]
+    InvalidFormat(#[from] InvalidFormat),
     /// Type tag is not registered
+    #[error("Unknown Chunk Type")]
     UnknownType,
     /// Random todo during debugging
+    #[error("Development TODO")]
     Todo(&'static str),
+    /// Error parsing track
+    #[error("Track parsing error")]
+    TrackParseError(#[from] track::TrackError),
 }
 
 impl TryFrom<(Chunk, Vec<u8>)> for ParsedChunk {
@@ -39,21 +46,19 @@ impl TryFrom<(Chunk, Vec<u8>)> for ParsedChunk {
         match chunk.chunk_type {
             HEADER_CHUNK => {
                 if chunk.len() == 6 {
-                    let format = u16::from_be_bytes([data[0], data[1]].try_into().unwrap());
-                    let ntrk = u16::from_be_bytes([data[2], data[3]].try_into().unwrap());
-                    let division = u16::from_be_bytes([data[4], data[5]].try_into().unwrap());
-                    if let Ok(header_chunk) = HeaderChunk::try_from((format, ntrk, division)) {
-                        return Ok(ParsedChunk::Header(header_chunk));
-                    }
+                    let format = u16::from_be_bytes([data[0], data[1]]);
+                    let ntrk = u16::from_be_bytes([data[2], data[3]]);
+                    let division = u16::from_be_bytes([data[4], data[5]]);
+                    let parsed = HeaderChunk::try_from((format, ntrk, division))?;
+                    Ok(ParsedChunk::Header(parsed))
+                } else {
+                    Err(ChunkParseError::InvalidFormat(InvalidFormat))
                 }
-
-                Err(ChunkParseError::InvalidFormat(InvalidFormat))
             }
 
             TRACK_DATA_CHUNK => {
-                let mut data = data.into_iter();
-                let track_chunk = MTrkEvent::from(&mut data);
-                Err(ChunkParseError::Todo("Parse Track Data Chunk"))
+                let parsed = TrackChunk::try_from(data)?;
+                Ok(ParsedChunk::Track(parsed))
             }
 
             _ => Err(ChunkParseError::UnknownType),

@@ -45,7 +45,7 @@ where
         let value = value.0;
         let status = value.get(1)[0];
         let channel = status & 0x0F;
-        let status = status >> 4 as u8;
+        let status = status >> 4;
 
         match status {
             0b1000 => {
