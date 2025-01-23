@@ -1,7 +1,7 @@
 //! Meta Event Structs and Parsing
 
 use super::{event::IteratorWrapper, TrackError};
-use crate::{chunk::parsed::track::MTrkEvent, reader::Yieldable};
+use crate::{chunk::track::MTrkEvent, reader::Yieldable};
 
 /// A meta level event
 #[derive(Debug, Clone, PartialEq)]
@@ -43,7 +43,9 @@ pub enum MetaEvent {
 #[derive(Debug, Clone, Copy, PartialEq)]
 /// A key signature
 pub struct KeySignature {
+    /// Sharps and flats
     sharps_flats: i8,
+    /// True if in major false if in minor
     major_minor: bool,
 }
 
@@ -162,7 +164,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::chunk::parsed::track::{
+    use crate::chunk::track::{
         event::IteratorWrapper,
         meta::{KeySignature, MetaEvent, SmpteOffset, TimeSignature},
         TrackError,

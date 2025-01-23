@@ -5,7 +5,9 @@ use super::{event::IteratorWrapper, TrackError};
 /// A midi system exclusize event message
 #[derive(Debug, Clone, PartialEq)]
 pub struct SysexEvent {
+    /// The manufacture ID of the System Exclusize message
     manufacture_id: ManufactureId,
+    /// Data payload to be parsed on a per-system basis
     payload: Vec<u8>,
 }
 
@@ -72,7 +74,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::chunk::parsed::track::{event::IteratorWrapper, TrackError};
+    use crate::chunk::track::{event::IteratorWrapper, TrackError};
 
     use super::{ManufactureId, SysexEvent};
 

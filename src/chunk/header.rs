@@ -113,7 +113,7 @@ mod tests {
     use crate::{
         chunk::{
             chunk_types::HEADER_CHUNK,
-            parsed::header::{Division, Format, HeaderChunk, SmpteTicks},
+            header::{Division, Format, HeaderChunk, SmpteTicks},
         },
         reader::{MidiReadable, MidiStream},
         Chunk,

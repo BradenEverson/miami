@@ -133,7 +133,7 @@ pub struct ControlChange {
 
 #[cfg(test)]
 mod tests {
-    use crate::chunk::parsed::track::event::UnsupportedStatusCode;
+    use crate::chunk::track::event::UnsupportedStatusCode;
 
     use super::{IteratorWrapper, MidiEvent, NoteMeta};
 

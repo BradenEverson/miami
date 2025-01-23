@@ -156,15 +156,15 @@ where
 
         match prefix {
             status if (0x80..=0xEF).contains(status) => Ok(Event::MidiEvent(MidiEvent::try_from(
-                IteratorWrapper(&mut peek.into_iter()),
+                IteratorWrapper(&mut peek),
             )?)),
 
             system if (0xF0..0xFF).contains(system) => Ok(Event::SysexEvent(SysexEvent::try_from(
-                IteratorWrapper(&mut peek.into_iter()),
+                IteratorWrapper(&mut peek),
             )?)),
 
             0xFF => Ok(Event::MetaEvent(MetaEvent::try_from(IteratorWrapper(
-                &mut peek.into_iter(),
+                &mut peek,
             ))?)),
 
             _ => Err(TrackError::InvalidFormat),

@@ -1,7 +1,7 @@
 //! Example program that reads the entirety of a MIDI file as raw chunks
 
 use miami::{
-    chunk::parsed::ParsedChunk,
+    chunk::ParsedChunk,
     reader::{MidiReadable, MidiStream},
 };
 
