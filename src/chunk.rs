@@ -13,7 +13,8 @@ pub mod chunk_types;
 pub mod header;
 pub mod track;
 
-/// A chunk's type paired with it's data
+/// Represents a parsed MIDI Chunk with its associated data.
+/// A parsed chunk is classified based on its type, such as header or track.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ParsedChunk {
     /// A header chunk

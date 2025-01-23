@@ -35,8 +35,15 @@ where
 
 /// Trait for reading sequential chunks from a MIDI stream
 pub trait MidiStream {
-    /// Reads the next chunk from the sequence and the data associated with it, fails if there
-    /// isn't enough data left to read a full chunk or read a payload
+    /// Reads the next chunk from the sequence along with its associated data.
+    ///
+    /// # Returns
+    /// - `Some((Chunk, Vec<u8>))`: If a complete chunk and its data are successfully read.
+    /// - `None`: If there isn't enough data left to read a full chunk or its payload.
+    ///
+    /// # Errors
+    /// This method will fail silently by returning `None` if the stream does not contain enough
+    /// data to read a full chunk header or its associated payload.
     fn read_chunk_data_pair(&mut self) -> Option<(Chunk, Vec<u8>)>;
 }
 

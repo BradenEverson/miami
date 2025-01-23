@@ -1,11 +1,74 @@
-//! A zero dependency MIDI file parser, with the ability to target no-std targets such as embedded
-//! systems and webassembly
+//! # miami
+//!
+//! A zero-dependency MIDI file parser designed for both standard and no-std targets, including
+//! embedded systems and WebAssembly environments. This crate provides core MIDI "chunks" and
+//! utilities for reading and parsing them, without introducing any extra overhead or dependencies.
+//!
+//! ## Overview
+//!
+//! MIDI files are structured as a series of chunks. Each chunk contains a 4-character ASCII
+//! type identifier and a 32-bit length that specifies how many bytes of data follow. The
+//! `Chunk` struct and related APIs in this crate make it straightforward to inspect and
+//! parse these sections of a MIDI file.
+//!
+//! - **Minimal dependencies**: Keeps your application lightweight and minimizes build complexity.
+//!     Opt in to serde support and only require `thiserror` by default
+//! - **No-std support**: Ideal for embedded projects and WebAssembly, where the Rust standard
+//!   library may be unavailable.
+//! - **Streaming-friendly**: Exposes traits and functions that can parse MIDI data from any
+//!   implementor of [`reader::MidiStream`], making it easier to handle data on the fly.
+//!
+//! ## Example Usage
+//!
+//! ```rust,ignore
+//! use miami::{
+//!     chunk::ParsedChunk,
+//!     reader::{MidiReadable, MidiStream},
+//! };
+//!
+//! fn main() {
+//!     // Load MIDI bytes (replace with your own source as needed).
+//!     let mut data = "test/test.mid"
+//!         .get_midi_bytes()
+//!         .expect("Get `test.mid` file and read bytes");
+//!
+//!     // Continuously read chunk-type/data pairs from the stream.
+//!     // Each read returns an option containing the chunk plus its raw data.
+//!     while let Some(parsed) = data.read_chunk_data_pair().map(ParsedChunk::try_from) {
+//!         match parsed {
+//!             Ok(chunk) => println!("Parsed chunk: {:?}", chunk),
+//!             Err(e) => eprintln!("Failed to parse chunk: {e}"),
+//!         }
+//!     }
+//! }
+//! ```
+//!
+//! The above example illustrates how to read chunks from a MIDI stream and use
+//! [`ParsedChunk::try_from`] to parse them into known types (header or track chunks).
+//!
+//! ## Library Structure
+//!
+//! - **[`chunk`]**: Contains the [`Chunk`] struct and associated utilities for identifying
+//!   chunk types and lengths.
+//! - **[`reader`]**: Provides traits and types for streaming MIDI data. The [`MidiStream`]
+//!   trait and related helpers allow on-the-fly parsing from any data source.
+//! - **`chunk_types`, `header`, and `track`**: Provide definitions for recognized MIDI
+//!   chunk types (e.g., `MThd` for the header and `MTrk` for track data) and the logic for
+//!   parsing their contents.
+//!
+//! ## Extensibility
+//!
+//! While this crate focuses on parsing the structural aspects of MIDI files (chunks and headers),
+//! you can use the raw track data to implement custom handling of MIDI events or other logic
+//! as needed. Because `miami` exposes chunks in a straightforward format, you remain in full
+//! control of the MIDI event parsing layer.
+//!
 
 pub mod chunk;
 pub mod reader;
 
-/// A MIDI Chunk.
-/// MIDI Chunks are composed of a 4 character type and a 32-bit length
+/// Represents a raw MIDI Chunk.
+/// A MIDI Chunk consists of a 4-character ASCII type identifier and a 32-bit unsigned integer specifying the length of its data.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Chunk {
     /// 4 character ASCII chunk type
