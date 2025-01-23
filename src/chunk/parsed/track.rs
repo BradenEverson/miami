@@ -24,6 +24,9 @@ pub enum TrackError {
     /// MIDI Channel Event status code is invalid
     #[error("Invalid Status Code for MIDI Channel Event {0}")]
     UnsupportedStatusCode(#[from] UnsupportedStatusCode),
+    /// Meta Event is in an invalid format
+    #[error("Meta Event data is in an invalid format")]
+    InvalidMetaEventData,
 }
 
 /// A track chunk, containing one or more MTrk events
@@ -52,7 +55,7 @@ impl TryFrom<Vec<u8>> for TrackChunk {
 }
 
 /// A MIDI Event with a DeltaTime and an attached Event
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MTrkEvent {
     /// Delta time is a variable-length representation of how much time to wait in ticks before the
     /// event follows.
@@ -120,7 +123,7 @@ impl MTrkEvent {
 }
 
 /// Any event that may occur
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Event {
     /// A midi event
     MidiEvent(MidiEvent),
