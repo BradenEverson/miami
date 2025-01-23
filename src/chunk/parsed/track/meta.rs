@@ -81,6 +81,9 @@ where
 {
     type Error = TrackError;
     fn try_from(value: IteratorWrapper<&mut ITER>) -> Result<Self, Self::Error> {
+        let prefix = value.0.next().ok_or(TrackError::OutOfSpace)?;
+        assert_eq!(prefix, 0xFF);
+
         let event_tag = value.0.next().ok_or(TrackError::OutOfSpace)?;
 
         let length = MTrkEvent::try_get_delta_time(value.0).ok_or(TrackError::OutOfSpace)?;
@@ -165,14 +168,14 @@ mod tests {
 
     #[test]
     fn test_sequence_number() {
-        let data = vec![0x00, 0x02, 0x00, 0x01]; // Tag: 0x00, Length: 2, Value: [0x00, 0x01]
+        let data = vec![0xFF, 0x00, 0x02, 0x00, 0x01]; // Tag: 0x00, Length: 2, Value: [0x00, 0x01]
         let result = MetaEvent::try_from(IteratorWrapper(&mut data.into_iter())).unwrap();
         assert_eq!(result, MetaEvent::SequenceNumber(1));
     }
 
     #[test]
     fn test_text_event() {
-        let data = vec![0x01, 0x05, b'H', b'e', b'l', b'l', b'o']; // Tag: 0x01, Length: 5, Value: "Hello"
+        let data = vec![0xFF, 0x01, 0x05, b'H', b'e', b'l', b'l', b'o']; // Tag: 0x01, Length: 5, Value: "Hello"
         let result = MetaEvent::try_from(IteratorWrapper(&mut data.into_iter())).unwrap();
         assert_eq!(result, MetaEvent::Text(b"Hello".to_vec()));
     }
@@ -180,7 +183,7 @@ mod tests {
     #[test]
     fn test_copyright_event() {
         let data = vec![
-            0x02, 0x0A, b'C', b'o', b'p', b'y', b'r', b'i', b'g', b'h', b't',
+            0xFF, 0x02, 0x0A, b'C', b'o', b'p', b'y', b'r', b'i', b'g', b'h', b't',
         ];
         let result = MetaEvent::try_from(IteratorWrapper(&mut data.into_iter())).unwrap();
         assert_eq!(result, MetaEvent::Copyright(b"Copyright".to_vec()));
@@ -188,14 +191,14 @@ mod tests {
 
     #[test]
     fn test_tempo_event() {
-        let data = vec![0x51, 0x03, 0x07, 0xA1, 0x20]; // Tag: 0x51, Length: 3, Tempo: 500,000 microseconds/quarter note
+        let data = vec![0xFF, 0x51, 0x03, 0x07, 0xA1, 0x20]; // Tag: 0x51, Length: 3, Tempo: 500,000 microseconds/quarter note
         let result = MetaEvent::try_from(IteratorWrapper(&mut data.into_iter())).unwrap();
         assert_eq!(result, MetaEvent::Tempo(500_000));
     }
 
     #[test]
     fn test_time_signature_event() {
-        let data = vec![0x58, 0x04, 0x04, 0x02, 0x18, 0x08]; // Tag: 0x58, Length: 4
+        let data = vec![0xFF, 0x58, 0x04, 0x04, 0x02, 0x18, 0x08]; // Tag: 0x58, Length: 4
         let result = MetaEvent::try_from(IteratorWrapper(&mut data.into_iter())).unwrap();
         assert_eq!(
             result,
@@ -210,7 +213,7 @@ mod tests {
 
     #[test]
     fn test_key_signature_event() {
-        let data = vec![0x59, 0x02, 0x00, 0x00]; // Tag: 0x59, Length: 2, C Major
+        let data = vec![0xFF, 0x59, 0x02, 0x00, 0x00]; // Tag: 0x59, Length: 2, C Major
         let result = MetaEvent::try_from(IteratorWrapper(&mut data.into_iter())).unwrap();
         assert_eq!(
             result,
@@ -223,7 +226,7 @@ mod tests {
 
     #[test]
     fn test_smpte_offset_event() {
-        let data = vec![0x54, 0x05, 0x01, 0x20, 0x15, 0x10, 0x00]; // Tag: 0x54, Length: 5
+        let data = vec![0xFF, 0x54, 0x05, 0x01, 0x20, 0x15, 0x10, 0x00]; // Tag: 0x54, Length: 5
         let result = MetaEvent::try_from(IteratorWrapper(&mut data.into_iter())).unwrap();
         assert_eq!(
             result,
@@ -239,21 +242,21 @@ mod tests {
 
     #[test]
     fn test_end_of_track_event() {
-        let data = vec![0x2F, 0x00]; // Tag: 0x2F, Length: 0
+        let data = vec![0xFF, 0x2F, 0x00]; // Tag: 0x2F, Length: 0
         let result = MetaEvent::try_from(IteratorWrapper(&mut data.into_iter())).unwrap();
         assert_eq!(result, MetaEvent::EndOfTrack);
     }
 
     #[test]
     fn test_unknown_event() {
-        let data = vec![0x99, 0x03, 0x01, 0x02, 0x03]; // Unknown Tag: 0x99
+        let data = vec![0xFF, 0x99, 0x03, 0x01, 0x02, 0x03]; // Unknown Tag: 0x99
         let result = MetaEvent::try_from(IteratorWrapper(&mut data.into_iter())).unwrap();
         assert_eq!(result, MetaEvent::UnknownRaw(0x99, vec![0x01, 0x02, 0x03]));
     }
 
     #[test]
     fn test_invalid_length() {
-        let data = vec![0x00, 0x02, 0x02]; // Tag: 0x00, Length: 3, but only 2 bytes provided
+        let data = vec![0xFF, 0x00, 0x02, 0x02]; // Tag: 0x00, Length: 3, but only 2 bytes provided
         let result = MetaEvent::try_from(IteratorWrapper(&mut data.into_iter()));
         assert_eq!(result, Err(TrackError::InvalidMetaEventData));
     }

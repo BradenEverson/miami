@@ -141,18 +141,20 @@ where
     fn try_from(value: IteratorWrapper<&mut ITER>) -> Result<Self, Self::Error> {
         let mut peek = value.0.peekable();
 
-        let prefix = peek.next().ok_or(TrackError::OutOfSpace)?;
+        let prefix = peek.peek().ok_or(TrackError::OutOfSpace)?;
 
         match prefix {
-            status if (0x80..=0xEF).contains(&status) => {
-                Ok(Event::MidiEvent(MidiEvent::try_from(value)?))
-            }
+            status if (0x80..=0xEF).contains(status) => Ok(Event::MidiEvent(MidiEvent::try_from(
+                IteratorWrapper(&mut peek.into_iter()),
+            )?)),
 
-            system if (0xF0..0xFF).contains(&system) => {
-                Ok(Event::SysexEvent(SysexEvent::try_from(value)?))
-            }
+            system if (0xF0..0xFF).contains(system) => Ok(Event::SysexEvent(SysexEvent::try_from(
+                IteratorWrapper(&mut peek.into_iter()),
+            )?)),
 
-            0xFF => Ok(Event::MetaEvent(MetaEvent::try_from(value)?)),
+            0xFF => Ok(Event::MetaEvent(MetaEvent::try_from(IteratorWrapper(
+                &mut peek.into_iter(),
+            ))?)),
 
             _ => Err(TrackError::InvalidFormat),
         }
