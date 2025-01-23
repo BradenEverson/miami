@@ -179,7 +179,7 @@ mod tests {
     fn test_text_event() {
         let data = vec![0xFF, 0x01, 0x05, b'H', b'e', b'l', b'l', b'o']; // Tag: 0x01, Length: 5, Value: "Hello"
         let result = MetaEvent::try_from(IteratorWrapper(&mut data.into_iter())).unwrap();
-        assert_eq!(result, MetaEvent::Text(b"Hello".to_vec()));
+        assert_eq!(result, MetaEvent::Text("Hello".to_string()));
     }
 
     #[test]
@@ -188,7 +188,7 @@ mod tests {
             0xFF, 0x02, 0x0A, b'C', b'o', b'p', b'y', b'r', b'i', b'g', b'h', b't',
         ];
         let result = MetaEvent::try_from(IteratorWrapper(&mut data.into_iter())).unwrap();
-        assert_eq!(result, MetaEvent::Copyright(b"Copyright".to_vec()));
+        assert_eq!(result, MetaEvent::Copyright("Copyright".to_string()));
     }
 
     #[test]
