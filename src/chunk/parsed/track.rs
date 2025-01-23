@@ -1,5 +1,7 @@
 //! Track chunk data enums and structs
 
+use std::string::FromUtf8Error;
+
 use event::{IteratorWrapper, MidiEvent, UnsupportedStatusCode};
 use meta::MetaEvent;
 use sysex::SysexEvent;
@@ -10,7 +12,7 @@ pub mod meta;
 pub mod sysex;
 
 /// Error types from parsing a track
-#[derive(Error, Debug, Clone, Copy, PartialEq)]
+#[derive(Error, Debug, Clone, PartialEq)]
 pub enum TrackError {
     /// End of File Marker, ends the iterator
     #[error("Reached end of line at end of parsing")]
@@ -33,6 +35,9 @@ pub enum TrackError {
     /// Missing ending to exclusive message
     #[error("Missing end of System Exclusive Message 0xF7 byte")]
     MissingEndOfExclusive,
+    /// Error while parsing a UTF8 String for metadata
+    #[error("Failed to parse utf-8 encoded string in the meta track event")]
+    UtfParseError(#[from] FromUtf8Error),
 }
 
 /// A track chunk, containing one or more MTrk events

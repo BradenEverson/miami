@@ -9,17 +9,17 @@ pub enum MetaEvent {
     /// Sequence Number, tag 0x00
     SequenceNumber(u16),
     /// Text metadata, tag 0x01
-    Text(Vec<u8>),
+    Text(String),
     /// Copyright, tag 0x02
-    Copyright(Vec<u8>),
+    Copyright(String),
     /// Track name, tag 0x03
-    TrackName(Vec<u8>),
+    TrackName(String),
     /// Instrucment name, tag 0x04
-    InstrumentName(Vec<u8>),
+    InstrumentName(String),
     /// Lyric, tag 0x05
-    Lyric(Vec<u8>),
+    Lyric(String),
     /// Marker, tag 0x06
-    Marker(Vec<u8>),
+    Marker(String),
     /// Cue Point, tag 0x07
     CuePoint(Vec<u8>),
     /// Midi Channel Prefix, tag 0x20
@@ -107,12 +107,12 @@ where
                 MetaEvent::SequenceNumber,
                 u16::from_be_bytes([data[0], data[1]])
             ),
-            0x01 => Ok(MetaEvent::Text(data)),
-            0x02 => Ok(MetaEvent::Copyright(data)),
-            0x03 => Ok(MetaEvent::TrackName(data)),
-            0x04 => Ok(MetaEvent::InstrumentName(data)),
-            0x05 => Ok(MetaEvent::Lyric(data)),
-            0x06 => Ok(MetaEvent::Marker(data)),
+            0x01 => Ok(MetaEvent::Text(String::from_utf8(data)?)),
+            0x02 => Ok(MetaEvent::Copyright(String::from_utf8(data)?)),
+            0x03 => Ok(MetaEvent::TrackName(String::from_utf8(data)?)),
+            0x04 => Ok(MetaEvent::InstrumentName(String::from_utf8(data)?)),
+            0x05 => Ok(MetaEvent::Lyric(String::from_utf8(data)?)),
+            0x06 => Ok(MetaEvent::Marker(String::from_utf8(data)?)),
             0x07 => Ok(MetaEvent::CuePoint(data)),
 
             0x20 => meta_event!(1, MetaEvent::MidiChannelPrefix, data[0]),
