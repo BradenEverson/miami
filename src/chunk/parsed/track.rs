@@ -1,9 +1,13 @@
 //! Track chunk data enums and structs
 
-use status::{IteratorWrapper, MidiEvent, UnsupportedStatusCode};
+use event::{IteratorWrapper, MidiEvent, UnsupportedStatusCode};
+use meta::MetaEvent;
+use sysex::SysexEvent;
 use thiserror::Error;
 
-pub mod status;
+pub mod event;
+pub mod meta;
+pub mod sysex;
 
 /// Error types from parsing a track
 #[derive(Error, Debug, Clone, Copy, PartialEq)]
@@ -149,34 +153,6 @@ where
 
             _ => Err(TrackError::InvalidFormat),
         }
-    }
-}
-
-/// A midi system exclusize event message
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct SysexEvent;
-
-impl<ITER> TryFrom<IteratorWrapper<&mut ITER>> for SysexEvent
-where
-    ITER: Iterator<Item = u8>,
-{
-    type Error = TrackError;
-    fn try_from(value: IteratorWrapper<&mut ITER>) -> Result<Self, Self::Error> {
-        todo!("Parse System Exclusive Event")
-    }
-}
-
-/// A meta level event
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct MetaEvent;
-
-impl<ITER> TryFrom<IteratorWrapper<&mut ITER>> for MetaEvent
-where
-    ITER: Iterator<Item = u8>,
-{
-    type Error = TrackError;
-    fn try_from(value: IteratorWrapper<&mut ITER>) -> Result<Self, Self::Error> {
-        todo!("Parse Meta Event")
     }
 }
 
