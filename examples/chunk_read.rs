@@ -6,7 +6,7 @@ use miami::{
 };
 
 fn main() {
-    let mut data = "test/run.mid"
+    let mut data = "test/test.mid"
         .get_midi_bytes()
         .expect("Get `run.midi` file and stream bytes");
 
