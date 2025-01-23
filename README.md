@@ -1,9 +1,8 @@
 # Miami 🌴📼
+
 *parsing midi files is not as scary as it sounds.* 🐔
 
-
 [![crates.io](https://img.shields.io/crates/v/miami.svg)](https://crates.io/crates/miami)
-
 
 A lightweight, minimal dependency MIDI file parser designed for resource-constrained environments, making it great for WebAssembly applications.
 
