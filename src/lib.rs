@@ -20,25 +20,23 @@
 //!
 //! ## Example Usage
 //!
-//! ```rust,ignore
+//! ```rust
 //! use miami::{
 //!     chunk::ParsedChunk,
 //!     reader::{MidiReadable, MidiStream},
 //! };
 //!
-//! fn main() {
-//!     // Load MIDI bytes (replace with your own source as needed).
-//!     let mut data = "test/test.mid"
-//!         .get_midi_bytes()
-//!         .expect("Get `test.mid` file and read bytes");
+//! // Load MIDI bytes (replace with your own source as needed).
+//! let mut data = "test/test.mid"
+//!     .get_midi_bytes()
+//!     .expect("Get `test.mid` file and read bytes");
 //!
-//!     // Continuously read chunk-type/data pairs from the stream.
-//!     // Each read returns an option containing the chunk plus its raw data.
-//!     while let Some(parsed) = data.read_chunk_data_pair().map(ParsedChunk::try_from) {
-//!         match parsed {
-//!             Ok(chunk) => println!("Parsed chunk: {:?}", chunk),
-//!             Err(e) => eprintln!("Failed to parse chunk: {e}"),
-//!         }
+//! // Continuously read chunk-type/data pairs from the stream.
+//! // Each read returns an option containing the chunk plus its raw data.
+//! while let Some(parsed) = data.read_chunk_data_pair().map(ParsedChunk::try_from) {
+//!     match parsed {
+//!         Ok(chunk) => println!("Parsed chunk: {:?}", chunk),
+//!         Err(e) => eprintln!("Failed to parse chunk: {e}"),
 //!     }
 //! }
 //! ```
@@ -67,9 +65,13 @@
 pub mod chunk;
 pub mod reader;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// Represents a raw MIDI Chunk.
 /// A MIDI Chunk consists of a 4-character ASCII type identifier and a 32-bit unsigned integer specifying the length of its data.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Chunk {
     /// 4 character ASCII chunk type
     pub chunk_type: [char; 4],

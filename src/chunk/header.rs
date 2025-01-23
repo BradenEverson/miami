@@ -2,8 +2,12 @@
 
 use thiserror::Error;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// Header chunk data, including format, ntrks and division as 3 16 bit unsigned integers
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct HeaderChunk {
     /// The MIDI format
     format: Format,
@@ -29,6 +33,7 @@ impl TryFrom<(u16, u16, u16)> for HeaderChunk {
 /// The overall organization of the MIDI file. Only three values are valid, making most of the 16
 /// bits irrelevant
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Format {
     /// The file contains a single multi-channel track
     Zero,
@@ -57,6 +62,7 @@ impl TryFrom<u16> for Format {
 
 /// The meaning of the delta-times in the MIDI sequence,
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Division {
     /// When bit 15 is a 0, bits 14-0 represent ticks per quarter note
     Metrical(u16),
@@ -67,6 +73,7 @@ pub enum Division {
 
 /// Division defined by time-code-based time
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SmpteTicks {
     /// 7 bits of negative timecode
     smpte: i8,

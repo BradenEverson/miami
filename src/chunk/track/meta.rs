@@ -3,8 +3,12 @@
 use super::{event::IteratorWrapper, TrackError};
 use crate::{chunk::track::MTrkEvent, reader::Yieldable};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// A meta level event
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum MetaEvent {
     /// Sequence Number, tag 0x00
     SequenceNumber(u16),
@@ -41,6 +45,7 @@ pub enum MetaEvent {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 /// A key signature
 pub struct KeySignature {
     /// Sharps and flats
@@ -50,6 +55,7 @@ pub struct KeySignature {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 /// An SMPTE Offset
 pub struct SmpteOffset {
     /// Hours of offset
@@ -65,6 +71,7 @@ pub struct SmpteOffset {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 /// A Time Signature
 pub struct TimeSignature {
     /// The time signature's numerator

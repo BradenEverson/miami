@@ -2,8 +2,12 @@
 
 use super::{event::IteratorWrapper, TrackError};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// A midi system exclusize event message
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SysexEvent {
     /// The manufacture ID of the System Exclusize message
     manufacture_id: ManufactureId,
@@ -13,6 +17,7 @@ pub struct SysexEvent {
 
 /// A manufacturer's ID. Can be either a 1 byte variant or 3 bytes
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum ManufactureId {
     /// One byte ID
     OneByte(u8),

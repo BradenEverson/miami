@@ -9,6 +9,9 @@ use crate::{
     Chunk,
 };
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 pub mod chunk_types;
 pub mod header;
 pub mod track;
@@ -16,6 +19,7 @@ pub mod track;
 /// Represents a parsed MIDI Chunk with its associated data.
 /// A parsed chunk is classified based on its type, such as header or track.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum ParsedChunk {
     /// A header chunk
     Header(HeaderChunk),

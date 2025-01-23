@@ -4,8 +4,12 @@ use thiserror::Error;
 
 use crate::reader::Yieldable;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// A MIDI Message Event
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum MidiEvent {
     /// Turn Off event
     /// This message is sent whena  note is released
@@ -115,6 +119,7 @@ where
 
 /// Metadata for a note's relative info. Including channel, key and velocity
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct NoteMeta {
     /// Note key
     key: u8,
@@ -124,6 +129,7 @@ pub struct NoteMeta {
 
 /// Metadata for changing a controller
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ControlChange {
     /// Controller number
     controller_number: u8,

@@ -7,6 +7,9 @@ use meta::MetaEvent;
 use sysex::SysexEvent;
 use thiserror::Error;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 pub mod event;
 pub mod meta;
 pub mod sysex;
@@ -42,6 +45,7 @@ pub enum TrackError {
 
 /// A track chunk, containing one or more MTrk events
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct TrackChunk {
     /// All associated track events to this chunk
     mtrk_events: Vec<MTrkEvent>,
@@ -67,6 +71,7 @@ impl TryFrom<Vec<u8>> for TrackChunk {
 
 /// A MIDI Event with a DeltaTime and an attached Event
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct MTrkEvent {
     /// Delta time is a variable-length representation of how much time to wait in ticks before the
     /// event follows.
@@ -135,6 +140,7 @@ impl MTrkEvent {
 
 /// Any event that may occur
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Event {
     /// A midi event
     MidiEvent(MidiEvent),
