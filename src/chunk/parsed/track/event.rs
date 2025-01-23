@@ -30,8 +30,6 @@ pub enum MidiEvent {
     /// This message is sent to indicate a change in the pitch wheel as measured by a fourteen bit
     /// value.
     PitchWheelChange(u8, u16),
-    /// A currently unimplemented MIDI event code that must be done
-    Todo(u8, u8),
 }
 
 /// Error type for an unsupported error type
