@@ -2,11 +2,10 @@
 *parsing midi files is not as scary as it sounds.* 🐔
 
 
-A lightweight, zero-dependency MIDI file parser designed for resource-constrained environments. This works on no-std targets, making it great for embedded systems and WebAssembly applications.
+A lightweight, minimal dependency MIDI file parser designed for resource-constrained environments, making it great for WebAssembly applications.
 
 ## Features
 
-- **No-std Compatibility**: Fully functional in environments without a standard library.
 - **Efficient MIDI Parsing**: Parse MIDI chunks and their associated data with minimal overhead.
 - **Error Handling**: Comprehensive error reporting for invalid or unsupported chunks.
 

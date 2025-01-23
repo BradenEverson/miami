@@ -1,8 +1,8 @@
 //! # miami
 //!
-//! A zero-dependency MIDI file parser designed for both standard and no-std targets, including
-//! embedded systems and WebAssembly environments. This crate provides core MIDI "chunks" and
-//! utilities for reading and parsing them, without introducing any extra overhead or dependencies.
+//! A minimal dependency MIDI file parser designed for both standard and WASM targets,
+//! This crate provides core MIDI "chunks" and utilities for reading and parsing them,
+//! without introducing any extra overhead or dependencies.
 //!
 //! ## Overview
 //!
@@ -13,8 +13,6 @@
 //!
 //! - **Minimal dependencies**: Keeps your application lightweight and minimizes build complexity.
 //!     Opt in to serde support and only require `thiserror` by default
-//! - **No-std support**: Ideal for embedded projects and WebAssembly, where the Rust standard
-//!   library may be unavailable.
 //! - **Streaming-friendly**: Exposes traits and functions that can parse MIDI data from any
 //!   implementor of [`reader::MidiStream`], making it easier to handle data on the fly.
 //!

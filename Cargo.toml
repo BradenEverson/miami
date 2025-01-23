@@ -2,7 +2,7 @@
 name = "miami"
 version = "0.1.0"
 authors = ["BradenEverson <bradeneverson@gmail.com>"]
-description = "Minimal dependency, nostd supported MIDI file format parser"
+description = "Minimal dependency MIDI file format parser"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/BradenEverson/miami"
