@@ -3,6 +3,7 @@
 *parsing midi files is not as scary as it sounds.* 🐔
 
 [![crates.io](https://img.shields.io/crates/v/miami.svg)](https://crates.io/crates/miami)
+[![Tests](https://github.com/BradenEverson/miami/actions/workflows/rust.yml/badge.svg)](https://github.com/BradenEverson/miami/actions/workflows/rust.yml)
 
 A lightweight, minimal dependency MIDI file parser designed for resource-constrained environments, making it great for WebAssembly applications.
 
