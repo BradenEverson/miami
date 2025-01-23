@@ -27,6 +27,12 @@ pub enum TrackError {
     /// Meta Event is in an invalid format
     #[error("Meta Event data is in an invalid format")]
     InvalidMetaEventData,
+    /// Invalid start tag for sysex message
+    #[error("Invalid SysEx Message Start")]
+    InvalidSysExMessage,
+    /// Missing ending to exclusive message
+    #[error("Missing end of System Exclusive Message 0xF7 byte")]
+    MissingEndOfExclusive,
 }
 
 /// A track chunk, containing one or more MTrk events

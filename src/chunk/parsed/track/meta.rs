@@ -82,7 +82,9 @@ where
     type Error = TrackError;
     fn try_from(value: IteratorWrapper<&mut ITER>) -> Result<Self, Self::Error> {
         let prefix = value.0.next().ok_or(TrackError::OutOfSpace)?;
-        assert_eq!(prefix, 0xFF);
+        if prefix != 0xFF {
+            return Err(TrackError::InvalidMetaEventData);
+        }
 
         let event_tag = value.0.next().ok_or(TrackError::OutOfSpace)?;
 
