@@ -403,4 +403,130 @@ mod tests {
         let result = MetaEvent::try_from(IteratorWrapper(&mut bytes.into_iter())).unwrap();
         assert_eq!(result, expected);
     }
+
+    macro_rules! meta_event_test {
+        ($name:ident, $event:expr, $data:expr) => {
+            #[test]
+            fn $name() {
+                let data = $data;
+                let expected = $event;
+                let parsed =
+                    MetaEvent::try_from(IteratorWrapper(&mut data.clone().into_iter())).unwrap();
+                assert_eq!(parsed, expected);
+
+                let serialized = expected.clone().to_midi_bytes();
+                assert_eq!(serialized, data);
+            }
+        };
+    }
+
+    meta_event_test!(
+        sequence_number_event,
+        MetaEvent::SequenceNumber(1),
+        vec![0xFF, 0x00, 0x02, 0x00, 0x01]
+    );
+
+    meta_event_test!(
+        text_event,
+        MetaEvent::Text("Hello".to_string()),
+        vec![0xFF, 0x01, 0x05, b'H', b'e', b'l', b'l', b'o']
+    );
+
+    meta_event_test!(
+        copyright_event,
+        MetaEvent::Copyright("Copyright".to_string()),
+        vec![0xFF, 0x02, 0x0A, b'C', b'o', b'p', b'y', b'r', b'i', b'g', b'h', b't']
+    );
+
+    meta_event_test!(
+        track_name_event,
+        MetaEvent::TrackName("Track 1".to_string()),
+        vec![0xFF, 0x03, 0x07, b'T', b'r', b'a', b'c', b'k', b' ', b'1']
+    );
+
+    meta_event_test!(
+        instrument_name_event,
+        MetaEvent::InstrumentName("Piano".to_string()),
+        vec![0xFF, 0x04, 0x05, b'P', b'i', b'a', b'n', b'o']
+    );
+
+    meta_event_test!(
+        lyric_event,
+        MetaEvent::Lyric("Lyrics".to_string()),
+        vec![0xFF, 0x05, 0x06, b'L', b'y', b'r', b'i', b'c', b's']
+    );
+
+    meta_event_test!(
+        marker_event,
+        MetaEvent::Marker("Marker".to_string()),
+        vec![0xFF, 0x06, 0x06, b'M', b'a', b'r', b'k', b'e', b'r']
+    );
+
+    meta_event_test!(
+        cue_point_event,
+        MetaEvent::CuePoint(vec![0x01, 0x02]),
+        vec![0xFF, 0x07, 0x02, 0x01, 0x02]
+    );
+
+    meta_event_test!(
+        midi_channel_prefix_event,
+        MetaEvent::MidiChannelPrefix(0x05),
+        vec![0xFF, 0x20, 0x01, 0x05]
+    );
+
+    meta_event_test!(
+        end_of_track_event,
+        MetaEvent::EndOfTrack,
+        vec![0xFF, 0x2F, 0x00]
+    );
+
+    meta_event_test!(
+        tempo_event,
+        MetaEvent::Tempo(500_000),
+        vec![0xFF, 0x51, 0x03, 0x07, 0xA1, 0x20]
+    );
+
+    meta_event_test!(
+        smpte_offset_event,
+        MetaEvent::SmpteOffset(SmpteOffset {
+            hours: 1,
+            minutes: 32,
+            seconds: 21,
+            frames: 16,
+            subframes: 0,
+        }),
+        vec![0xFF, 0x54, 0x05, 0x01, 0x20, 0x15, 0x10, 0x00]
+    );
+
+    meta_event_test!(
+        time_signature_event,
+        MetaEvent::TimeSignature(TimeSignature {
+            numerator: 4,
+            denominator: 4,
+            clocks_per_tick: 24,
+            thirty_second_notes_per_quarter: 8,
+        }),
+        vec![0xFF, 0x58, 0x04, 0x04, 0x02, 0x18, 0x08]
+    );
+
+    meta_event_test!(
+        key_signature_event,
+        MetaEvent::KeySignature(KeySignature {
+            sharps_flats: 0,
+            major_minor: false,
+        }),
+        vec![0xFF, 0x59, 0x02, 0x00, 0x00]
+    );
+
+    meta_event_test!(
+        sequencer_specific_event,
+        MetaEvent::SequencerSpecific(vec![0x01, 0x02, 0x03]),
+        vec![0xFF, 0x7F, 0x03, 0x01, 0x02, 0x03]
+    );
+
+    meta_event_test!(
+        unknown_raw_event,
+        MetaEvent::UnknownRaw(0x99, vec![0x01, 0x02, 0x03]),
+        vec![0xFF, 0x99, 0x03, 0x01, 0x02, 0x03]
+    );
 }

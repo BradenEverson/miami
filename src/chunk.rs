@@ -28,6 +28,13 @@ pub enum ParsedChunk {
     Track(TrackChunk),
 }
 
+impl MidiWriteable for ParsedChunk {
+    fn to_midi_bytes(self) -> Vec<u8> {
+        let val: (Chunk, Vec<u8>) = self.into();
+        val.to_midi_bytes()
+    }
+}
+
 /// Error type for attempting to parse from a raw chunk to a parsed one
 #[derive(Debug, Error)]
 pub enum ChunkParseError {
