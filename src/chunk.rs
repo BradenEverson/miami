@@ -6,6 +6,7 @@ use track::TrackChunk;
 
 use crate::{
     chunk::chunk_types::{HEADER_CHUNK, TRACK_DATA_CHUNK},
+    writer::MidiWriteable,
     Chunk,
 };
 
@@ -42,6 +43,25 @@ pub enum ChunkParseError {
     /// Error parsing track
     #[error("Track parsing error")]
     TrackParseError(#[from] track::TrackError),
+}
+
+impl From<ParsedChunk> for (Chunk, Vec<u8>) {
+    fn from(value: ParsedChunk) -> Self {
+        match value {
+            ParsedChunk::Header(header) => {
+                let bytes = header.to_midi_bytes();
+                let chunk = Chunk {
+                    chunk_type: HEADER_CHUNK,
+                    length: bytes.len() as u32,
+                };
+
+                (chunk, bytes)
+            }
+            ParsedChunk::Track(track) => {
+                todo!()
+            }
+        }
+    }
 }
 
 impl TryFrom<(Chunk, Vec<u8>)> for ParsedChunk {
