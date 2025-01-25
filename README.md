@@ -35,12 +35,17 @@ let mut data = "path/to/midi/file.mid"
     .get_midi_bytes()
     .expect("Failed to load MIDI file");
 
-while let Some(parsed) = data
-    .read_chunk_data_pair()
-    .map(|val| ParsedChunk::try_from(val))
-{
-    println!("{parsed:?}");
+let midi = RawMidi::try_from_midi_stream(data).expect("Parse data as a MIDI stream");
+
+for chunk in midi.chunks.iter() {
+    println!("{chunk:?}");
 }
+```
+
+A `RawMidi` can also be sanitized and upgraded into a `Midi` struct that contains a single header and a subsequent list of tracks:
+
+```rust
+let sanitized: Midi = midi.check_into_midi().expect("Upgrade to Midi");
 ```
 
 Writing a set of ParsedChunks to a file:

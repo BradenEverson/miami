@@ -14,7 +14,7 @@ fn main() {
 
     let midi: Midi = RawMidi::try_from_midi_stream(data)
         .expect("Parse data as a MIDI stream")
-        .try_into()
+        .check_into_midi()
         .expect("Sanitize MIDI into formatted MIDI");
 
     output

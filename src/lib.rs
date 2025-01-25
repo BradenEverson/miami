@@ -19,25 +19,24 @@
 //! ## Example Usage
 //!
 //! ```rust
-//! use miami::{
-//!     chunk::ParsedChunk,
-//!     reader::{MidiReadable, MidiStream},
-//! };
+//! use miami::{reader::MidiReadable, Midi, RawMidi};
 //!
 //! // Load MIDI bytes (replace with your own source as needed).
 //! let mut data = "test/test.mid"
 //!     .get_midi_bytes()
 //!     .expect("Get `test.mid` file and read bytes");
 //!
-//! // Continuously read chunk-type/data pairs from the stream.
-//! // Each read returns an option containing the chunk plus its raw data.
-//! while let Some(parsed) = data.read_chunk_data_pair().map(ParsedChunk::try_from) {
-//!     match parsed {
-//!         Ok(chunk) => println!("Parsed chunk: {:?}", chunk),
-//!         Err(e) => eprintln!("Failed to parse chunk: {e}"),
-//!     }
+//! let midi: Midi = RawMidi::try_from_midi_stream(data)
+//!     .expect("Parse data as a MIDI stream")
+//!     .check_into_midi()
+//!     .expect("Sanitize MIDI into formatted MIDI");
+//!
+//! println!("Header: {:?}", midi.header);
+//! for chunk in midi.tracks.iter() {
+//!     println!("Track: {:?}", chunk);
 //! }
 //! ```
+//!
 //!
 //! The above example illustrates how to read chunks from a MIDI stream and use
 //! [`ParsedChunk::try_from`] to parse them into known types (header or track chunks).
@@ -86,6 +85,12 @@ impl RawMidi {
         STREAM: MidiStream,
     {
         Self::try_from(StreamWrapper(stream))
+    }
+
+    /// Attempts to upgrade a `RawMidi` stream into a sanitized `Midi` struct. This means there
+    /// must be a single starting header and only track chunks afterwards
+    pub fn check_into_midi(self) -> Result<Midi, MidiSanitizerError> {
+        self.try_into()
     }
 }
 

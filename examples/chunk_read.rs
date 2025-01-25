@@ -8,7 +8,9 @@ fn main() {
         .expect("Get `run.midi` file and stream bytes");
 
     let midi = RawMidi::try_from_midi_stream(data).expect("Parse data as a MIDI stream");
-    let sanitized_midi: Midi = midi.try_into().expect("Upgrade into sanitized format");
+    let sanitized_midi: Midi = midi
+        .check_into_midi()
+        .expect("Upgrade into sanitized format");
 
     println!("Header: {:?}", sanitized_midi.header);
     for chunk in sanitized_midi.tracks.iter() {
