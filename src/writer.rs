@@ -71,6 +71,12 @@ impl MidiWriteable for (Chunk, Vec<u8>) {
     }
 }
 
+impl MidiWriteable for String {
+    fn to_midi_bytes(self) -> Vec<u8> {
+        self.as_bytes().to_vec()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
