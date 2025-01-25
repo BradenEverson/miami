@@ -1,4 +1,4 @@
-# Miami 🌴📼
+<img alt="Banner" src="./banner.png" />
 
 *parsing midi files is not as scary as it sounds.* 🐔
 
