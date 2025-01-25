@@ -1,7 +1,5 @@
 //! Header Chunk Enum and Struct Definitions
 
-use thiserror::Error;
-
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -72,9 +70,15 @@ impl MidiWriteable for Format {
 }
 
 /// Error struct representing an invalid format specifier
-#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
-#[error("Invalid header format")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InvalidFormat;
+
+impl core::error::Error for InvalidFormat {}
+impl core::fmt::Display for InvalidFormat {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write![f, "Invalid header format"]
+    }
+}
 
 impl TryFrom<u16> for Format {
     type Error = InvalidFormat;

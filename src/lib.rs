@@ -12,7 +12,7 @@
 //! parse these sections of a MIDI file.
 //!
 //! - **Minimal dependencies**: Keeps your application lightweight and minimizes build complexity.
-//!     Opt in to serde support and only require `thiserror` by default
+//!     Opt in to serde support.
 //! - **Streaming-friendly**: Exposes traits and functions that can parse MIDI data from any
 //!   implementor of [`reader::MidiStream`], making it easier to handle data on the fly.
 //!
@@ -67,7 +67,6 @@ use chunk::{header::HeaderChunk, track::TrackChunk, ChunkParseError, ParsedChunk
 use reader::MidiStream;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 use writer::MidiWriteable;
 
 /// An entire MIDI file as a raw sequence of parsed chunks
@@ -131,17 +130,24 @@ impl MidiWriteable for Midi {
 
 /// An error that may occur when verifying that a Raw Midi struct is sanitized into a clean MIDI
 /// format
-#[derive(Debug, Clone, Copy, PartialEq, Error)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum MidiSanitizerError {
     /// Sequence doesn't start with a header
-    #[error("First ParsedChunk in sequence isn't a header")]
     NoStartHeader,
     /// Too many headers
-    #[error("More than one header chunk identified")]
     TooManyHeaders,
     /// No chunks at all
-    #[error("No chunks present")]
     NoChunks,
+}
+impl core::error::Error for MidiSanitizerError {}
+impl core::fmt::Display for MidiSanitizerError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::NoStartHeader => write![f, "First ParsedChunk in sequence isn't a header"],
+            Self::TooManyHeaders => write![f, "More than one header chunk identified"],
+            Self::NoChunks => write![f, "No chunks present"],
+        }
+    }
 }
 
 impl TryFrom<RawMidi> for Midi {
