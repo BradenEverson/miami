@@ -5,12 +5,13 @@
 [![crates.io](https://img.shields.io/crates/v/miami.svg)](https://crates.io/crates/miami)
 [![Tests](https://github.com/BradenEverson/miami/actions/workflows/rust.yml/badge.svg)](https://github.com/BradenEverson/miami/actions/workflows/rust.yml)
 
-A lightweight, minimal dependency MIDI file parser designed for resource-constrained environments, making it great for WebAssembly applications.
+A lightweight, minimal dependency MIDI file parser and binary writer designed for resource-constrained environments, making it great for WebAssembly applications.
 
 ## Features
 
 - **Efficient MIDI Parsing**: Parse MIDI chunks and their associated data with minimal overhead.
 - **Error Handling**: Comprehensive error reporting for invalid or unsupported chunks.
+- **MIDI Format Writing**: Serialize Parsed or Generating MIDI chunks back into MIDI format binary.
 
 ## Getting Started
 
@@ -20,7 +21,7 @@ Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-miami = "0.1"
+miami = "{whatever version you want}"
 ```
 
 For serde support include the `serde` feature flag ;)
@@ -30,23 +31,28 @@ For serde support include the `serde` feature flag ;)
 The following example demonstrates how to read and process MIDI chunks from a file:
 
 ```rust
-use miami::{
-    chunk::ParsedChunk,
-    reader::{MidiReadable, MidiStream},
-};
+let mut data = "path/to/midi/file.mid"
+    .get_midi_bytes()
+    .expect("Failed to load MIDI file");
 
-fn main() {
-    let mut data = "path/to/midi/file.mid"
-        .get_midi_bytes()
-        .expect("Failed to load MIDI file");
-
-    while let Some(parsed) = data
-        .read_chunk_data_pair()
-        .map(|val| ParsedChunk::try_from(val))
-    {
-        println!("{parsed:?}");
-    }
+while let Some(parsed) = data
+    .read_chunk_data_pair()
+    .map(|val| ParsedChunk::try_from(val))
+{
+    println!("{parsed:?}");
 }
+```
+
+Writing a set of ParsedChunks to a file:
+
+```rust
+
+let mut output = File::create("output.mid").unwrap();
+for parsed in parsed_chunks {
+    let bytes = parsed.to_midi_bytes();
+    output.write(&bytes).expect("Write bytes to file");
+}
+
 ```
 
 ## Core Concepts
@@ -87,11 +93,6 @@ pub struct HeaderChunk {
     division: Division,
 }
 ```
-
-## The Future
-
-There is currently still a lot of work I want to do with `miami`, mainly MIDI file generation and a MIDI runtime potentially based in WASM. I'm planning to continue maintaining and working on this for the foreseeable future.
-
 ## Contributions
 
 Contributions are welcome! If you find a bug or have a feature request, feel free to open an issue or submit a pull request.
