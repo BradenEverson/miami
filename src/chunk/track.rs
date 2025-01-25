@@ -10,6 +10,8 @@ use thiserror::Error;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+use crate::writer::MidiWriteable;
+
 pub mod event;
 pub mod meta;
 pub mod sysex;
@@ -48,7 +50,7 @@ pub enum TrackError {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct TrackChunk {
     /// All associated track events to this chunk
-    mtrk_events: Vec<MTrkEvent>,
+    pub(crate) mtrk_events: Vec<MTrkEvent>,
 }
 
 impl TryFrom<Vec<u8>> for TrackChunk {
@@ -78,6 +80,17 @@ pub struct MTrkEvent {
     delta_time: u32,
     /// The event that occurs after the delta time is waited for
     event: Event,
+}
+
+impl MidiWriteable for MTrkEvent {
+    fn to_midi_bytes(self) -> Vec<u8> {
+        let mut bytes = MTrkEvent::to_midi_vlq(self.delta_time);
+        let event_bytes = self.event.to_midi_bytes();
+
+        bytes.extend(event_bytes.iter());
+
+        bytes
+    }
 }
 
 impl<ITER> TryFrom<IteratorWrapper<&mut ITER>> for MTrkEvent
@@ -132,6 +145,29 @@ impl MTrkEvent {
         Some(result)
     }
 
+    /// Goes backwards from length to variable length vector of bytes
+    pub fn to_midi_vlq(mut value: u32) -> Vec<u8> {
+        let mut bytes = Vec::new();
+
+        loop {
+            let mut byte = (value & 0x7F) as u8;
+            value >>= 7;
+
+            if !bytes.is_empty() {
+                byte |= 0x80;
+            }
+
+            bytes.push(byte);
+
+            if value == 0 {
+                break;
+            }
+        }
+
+        bytes.reverse();
+        bytes
+    }
+
     /// Returns true if the msb of a byte is 1
     fn msb_is_one(byte: u8) -> bool {
         byte >> 7 == 1
@@ -148,6 +184,16 @@ pub enum Event {
     SysexEvent(SysexEvent),
     /// Specifies non-MIDI information useful to this format or to sequencers
     MetaEvent(MetaEvent),
+}
+
+impl MidiWriteable for Event {
+    fn to_midi_bytes(self) -> Vec<u8> {
+        match self {
+            Self::MidiEvent(event) => event.to_midi_bytes(),
+            Self::SysexEvent(event) => event.to_midi_bytes(),
+            Self::MetaEvent(event) => event.to_midi_bytes(),
+        }
+    }
 }
 
 impl<ITER> TryFrom<IteratorWrapper<&mut ITER>> for Event
@@ -184,10 +230,19 @@ mod tests {
 
     #[test]
     fn delta_time_parsed() {
-        let bytes = vec![0x81, 0x40];
+        let bytes = [0x81, 0x40];
         let mut bytes = bytes.into_iter();
         let result = MTrkEvent::try_get_delta_time(&mut bytes);
 
         assert_eq!(result, Some(192))
+    }
+
+    #[test]
+    fn delta_time_backwards_parsed() {
+        let time = 192;
+        let bytes = MTrkEvent::to_midi_vlq(time);
+        let expected = vec![0x81, 0x40];
+
+        assert_eq!(bytes, expected)
     }
 }

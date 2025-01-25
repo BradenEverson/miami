@@ -58,7 +58,17 @@ impl From<ParsedChunk> for (Chunk, Vec<u8>) {
                 (chunk, bytes)
             }
             ParsedChunk::Track(track) => {
-                todo!()
+                let mut bytes = vec![];
+
+                for mtrk_event in track.mtrk_events {
+                    bytes.extend(mtrk_event.to_midi_bytes().iter());
+                }
+
+                let chunk = Chunk {
+                    chunk_type: TRACK_DATA_CHUNK,
+                    length: bytes.len() as u32,
+                };
+                (chunk, bytes)
             }
         }
     }

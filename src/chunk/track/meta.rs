@@ -1,7 +1,7 @@
 //! Meta Event Structs and Parsing
 
 use super::{event::IteratorWrapper, TrackError};
-use crate::{chunk::track::MTrkEvent, reader::Yieldable};
+use crate::{chunk::track::MTrkEvent, reader::Yieldable, writer::MidiWriteable};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -42,6 +42,12 @@ pub enum MetaEvent {
     SequencerSpecific(Vec<u8>),
     /// An unknown meta event
     UnknownRaw(u8, Vec<u8>),
+}
+
+impl MidiWriteable for MetaEvent {
+    fn to_midi_bytes(self) -> Vec<u8> {
+        todo!()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

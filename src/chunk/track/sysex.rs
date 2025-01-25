@@ -1,5 +1,7 @@
 //! System Exclusive Messages
 
+use crate::writer::MidiWriteable;
+
 use super::{event::IteratorWrapper, TrackError};
 
 #[cfg(feature = "serde")]
@@ -15,6 +17,17 @@ pub struct SysexEvent {
     payload: Vec<u8>,
 }
 
+impl MidiWriteable for SysexEvent {
+    fn to_midi_bytes(self) -> Vec<u8> {
+        let mut bytes = vec![0xF0];
+        bytes.extend(self.manufacture_id.to_midi_bytes());
+        bytes.extend(self.payload.iter());
+        bytes.push(0xF7);
+
+        bytes
+    }
+}
+
 /// A manufacturer's ID. Can be either a 1 byte variant or 3 bytes
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -23,6 +36,15 @@ pub enum ManufactureId {
     OneByte(u8),
     /// Three byte ID
     ThreeByte([u8; 3]),
+}
+
+impl MidiWriteable for ManufactureId {
+    fn to_midi_bytes(self) -> Vec<u8> {
+        match self {
+            Self::OneByte(byte) => byte.to_midi_bytes(),
+            Self::ThreeByte(bytes) => bytes.to_vec(),
+        }
+    }
 }
 
 impl<ITER> TryFrom<&mut IteratorWrapper<&mut ITER>> for ManufactureId
@@ -79,7 +101,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::chunk::track::{event::IteratorWrapper, TrackError};
+    use crate::{
+        chunk::track::{event::IteratorWrapper, TrackError},
+        writer::MidiWriteable,
+    };
 
     use super::{ManufactureId, SysexEvent};
 
@@ -132,5 +157,21 @@ mod tests {
         let sysex = SysexEvent::try_from(wrapper);
 
         assert_eq!(sysex, Err(TrackError::MissingEndOfExclusive))
+    }
+
+    #[test]
+    fn sys_ex_message_converted_serializes_to_bytes_properly() {
+        let mut data = [0xF0, 0x01, 0xFF, 0x00, 0x21, 0xF7].into_iter();
+        let wrapper = IteratorWrapper(&mut data);
+
+        let sysex = SysexEvent::try_from(wrapper).expect("Parse sysex message from bytes");
+
+        let expected = sysex.clone();
+        let mut bytes = sysex.to_midi_bytes().into_iter();
+        let wrapper = IteratorWrapper(&mut bytes);
+
+        let sysex = SysexEvent::try_from(wrapper).expect("Parse sysex message from bytes");
+
+        assert_eq!(sysex, expected)
     }
 }

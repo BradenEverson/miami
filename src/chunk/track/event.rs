@@ -2,7 +2,7 @@
 
 use thiserror::Error;
 
-use crate::reader::Yieldable;
+use crate::{reader::Yieldable, writer::MidiWriteable};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -34,6 +34,41 @@ pub enum MidiEvent {
     /// This message is sent to indicate a change in the pitch wheel as measured by a fourteen bit
     /// value.
     PitchWheelChange(u8, u16),
+}
+
+impl MidiWriteable for MidiEvent {
+    fn to_midi_bytes(self) -> Vec<u8> {
+        let status_byte = self.get_status_channel_combo();
+        let mut bytes = vec![status_byte];
+
+        let extra = match self {
+            Self::NoteOff(_, notemeta)
+            | Self::NoteOn(_, notemeta)
+            | Self::PolyphonicKeyPressure(_, notemeta) => notemeta.to_midi_bytes(),
+            Self::ControlChange(_, control_change) => control_change.to_midi_bytes(),
+            Self::ProgramChange(_, val) | Self::ChannelPressure(_, val) => val.to_midi_bytes(),
+            Self::PitchWheelChange(_, val) => val.to_midi_bytes(),
+        };
+
+        bytes.extend(extra.iter());
+
+        bytes
+    }
+}
+
+impl MidiEvent {
+    /// Combines the channel and current type's status identifier into a single byte
+    pub fn get_status_channel_combo(&self) -> u8 {
+        match self {
+            Self::NoteOff(channel, _) => 0b10000000 | channel,
+            Self::NoteOn(channel, _) => 0b10010000 | channel,
+            Self::PolyphonicKeyPressure(channel, _) => 0b10100000 | channel,
+            Self::ControlChange(channel, _) => 0b10110000 | channel,
+            Self::ProgramChange(channel, _) => 0b11000000 | channel,
+            Self::ChannelPressure(channel, _) => 0b11010000 | channel,
+            Self::PitchWheelChange(channel, _) => 0b11100000 | channel,
+        }
+    }
 }
 
 /// Error type for an unsupported error type
@@ -127,6 +162,12 @@ pub struct NoteMeta {
     velocity: u8,
 }
 
+impl MidiWriteable for NoteMeta {
+    fn to_midi_bytes(self) -> Vec<u8> {
+        vec![self.key, self.velocity]
+    }
+}
+
 /// Metadata for changing a controller
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -137,9 +178,15 @@ pub struct ControlChange {
     new_value: u8,
 }
 
+impl MidiWriteable for ControlChange {
+    fn to_midi_bytes(self) -> Vec<u8> {
+        vec![self.controller_number, self.new_value]
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::chunk::track::event::UnsupportedStatusCode;
+    use crate::{chunk::track::event::UnsupportedStatusCode, writer::MidiWriteable};
 
     use super::{IteratorWrapper, MidiEvent, NoteMeta};
 
@@ -167,5 +214,19 @@ mod tests {
         let mut stream = [status_channel, key, velocity].into_iter();
         let status = MidiEvent::try_from(IteratorWrapper(&mut stream));
         assert_eq!(status, Err(UnsupportedStatusCode(0b0010)));
+    }
+
+    #[test]
+    fn midi_event_backwards_parses_to_bytes() {
+        let key = 0b01010101;
+        let velocity = 0b11111111;
+
+        let expected = MidiEvent::NoteOff(0x0F, NoteMeta { key, velocity });
+
+        let mut stream = expected.clone().to_midi_bytes().into_iter();
+        let bytes =
+            MidiEvent::try_from(IteratorWrapper(&mut stream)).expect("Parse from serialized bytes");
+
+        assert_eq!(bytes, expected)
     }
 }
