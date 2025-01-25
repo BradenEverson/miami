@@ -1,7 +1,7 @@
 //! Meta Event Structs and Parsing
 
 use super::{event::IteratorWrapper, TrackError};
-use crate::{chunk::track::MTrkEvent, reader::Yieldable};
+use crate::{chunk::track::MTrkEvent, reader::Yieldable, writer::MidiWriteable};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -44,6 +44,67 @@ pub enum MetaEvent {
     UnknownRaw(u8, Vec<u8>),
 }
 
+impl MetaEvent {
+    /// Returns the specific event's tag
+    pub fn get_tag(&self) -> u8 {
+        match self {
+            Self::SequenceNumber(_) => 0x00,
+            Self::Text(_) => 0x01,
+            Self::Copyright(_) => 0x02,
+            Self::TrackName(_) => 0x03,
+            Self::InstrumentName(_) => 0x04,
+            Self::Lyric(_) => 0x05,
+            Self::Marker(_) => 0x06,
+            Self::CuePoint(_) => 0x07,
+            Self::MidiChannelPrefix(_) => 0x20,
+            Self::EndOfTrack => 0x2F,
+            Self::Tempo(_) => 0x51,
+            Self::SmpteOffset(_) => 0x54,
+            Self::TimeSignature(_) => 0x58,
+            Self::KeySignature(_) => 0x59,
+            Self::SequencerSpecific(_) => 0x7F,
+            Self::UnknownRaw(tag, _) => *tag,
+        }
+    }
+}
+
+impl MidiWriteable for MetaEvent {
+    fn to_midi_bytes(self) -> Vec<u8> {
+        let tag_byte = self.get_tag();
+        let mut bytes = vec![0xFF, tag_byte];
+
+        let payload_bytes = match self {
+            Self::SequenceNumber(val) => val.to_midi_bytes(),
+            Self::Text(val) => val.to_midi_bytes(),
+            Self::Copyright(val) => val.to_midi_bytes(),
+            Self::TrackName(val) => val.to_midi_bytes(),
+            Self::InstrumentName(val) => val.to_midi_bytes(),
+            Self::Lyric(val) => val.to_midi_bytes(),
+            Self::Marker(val) => val.to_midi_bytes(),
+            Self::CuePoint(val) => val,
+            Self::MidiChannelPrefix(val) => val.to_midi_bytes(),
+            Self::EndOfTrack => vec![],
+            Self::Tempo(val) => {
+                let res = val.to_midi_bytes();
+                res[1..].to_vec()
+            }
+            Self::SmpteOffset(val) => val.to_midi_bytes(),
+            Self::TimeSignature(val) => val.to_midi_bytes(),
+            Self::KeySignature(val) => val.to_midi_bytes(),
+            Self::SequencerSpecific(val) => val,
+            Self::UnknownRaw(_, val) => val,
+        };
+
+        let length = payload_bytes.len() as u32;
+        let len_vlq = MTrkEvent::to_midi_vlq(length);
+
+        bytes.extend(len_vlq.iter());
+        bytes.extend(payload_bytes.iter());
+
+        bytes
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 /// A key signature
@@ -52,6 +113,28 @@ pub struct KeySignature {
     sharps_flats: i8,
     /// True if in major false if in minor
     major_minor: bool,
+}
+
+impl MidiWriteable for KeySignature {
+    fn to_midi_bytes(self) -> Vec<u8> {
+        let KeySignature {
+            sharps_flats,
+            major_minor,
+        } = self;
+
+        let mut bytes = sharps_flats.to_midi_bytes();
+        let major_minor_bit = if major_minor {
+            // Some data may be lost here as we only know *if* major was not 0 it's true. But it's
+            // only ever used for this so it's not too much of an issue
+            1
+        } else {
+            0
+        };
+
+        bytes.push(major_minor_bit);
+
+        bytes
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -70,6 +153,19 @@ pub struct SmpteOffset {
     subframes: u8,
 }
 
+impl MidiWriteable for SmpteOffset {
+    fn to_midi_bytes(self) -> Vec<u8> {
+        let SmpteOffset {
+            hours,
+            minutes,
+            seconds,
+            frames,
+            subframes,
+        } = self;
+        vec![hours, minutes, seconds, frames, subframes]
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 /// A Time Signature
@@ -82,6 +178,22 @@ pub struct TimeSignature {
     clocks_per_tick: u8,
     /// Thirty second notes per quarter
     thirty_second_notes_per_quarter: u8,
+}
+
+impl MidiWriteable for TimeSignature {
+    fn to_midi_bytes(self) -> Vec<u8> {
+        let TimeSignature {
+            numerator,
+            denominator,
+            clocks_per_tick,
+            thirty_second_notes_per_quarter,
+        } = self;
+        let mut bytes = vec![numerator];
+        bytes.extend(denominator.to_midi_bytes().iter());
+        bytes.extend([clocks_per_tick, thirty_second_notes_per_quarter]);
+
+        bytes
+    }
 }
 
 impl<ITER> TryFrom<IteratorWrapper<&mut ITER>> for MetaEvent
@@ -171,10 +283,13 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::chunk::track::{
-        event::IteratorWrapper,
-        meta::{KeySignature, MetaEvent, SmpteOffset, TimeSignature},
-        TrackError,
+    use crate::{
+        chunk::track::{
+            event::IteratorWrapper,
+            meta::{KeySignature, MetaEvent, SmpteOffset, TimeSignature},
+            TrackError,
+        },
+        writer::MidiWriteable,
     };
 
     #[test]
@@ -278,4 +393,126 @@ mod tests {
         let result = MetaEvent::try_from(IteratorWrapper(&mut data.into_iter()));
         assert_eq!(result, Err(TrackError::OutOfSpace));
     }
+
+    #[test]
+    fn meta_event_backwards_parses_to_bytes() {
+        let expected = MetaEvent::KeySignature(KeySignature {
+            sharps_flats: 0,
+            major_minor: false,
+        });
+
+        let bytes = expected.clone().to_midi_bytes();
+
+        let result = MetaEvent::try_from(IteratorWrapper(&mut bytes.into_iter())).unwrap();
+        assert_eq!(result, expected);
+    }
+
+    macro_rules! meta_event_test {
+        ($name:ident, $event:expr_2021, $data:expr_2021) => {
+            #[test]
+            fn $name() {
+                let data = $data;
+                let expected = $event;
+                let parsed =
+                    MetaEvent::try_from(IteratorWrapper(&mut data.clone().into_iter())).unwrap();
+                assert_eq!(parsed, expected);
+
+                let serialized = expected.clone().to_midi_bytes();
+                assert_eq!(serialized, data);
+            }
+        };
+    }
+
+    meta_event_test!(
+        sequence_number_event,
+        MetaEvent::SequenceNumber(1),
+        vec![0xFF, 0x00, 0x02, 0x00, 0x01]
+    );
+
+    meta_event_test!(
+        text_event,
+        MetaEvent::Text("Hello".to_string()),
+        vec![0xFF, 0x01, 0x05, b'H', b'e', b'l', b'l', b'o']
+    );
+
+    meta_event_test!(
+        copyright_event,
+        MetaEvent::Copyright("Copyright".to_string()),
+        vec![0xFF, 0x02, 0x09, b'C', b'o', b'p', b'y', b'r', b'i', b'g', b'h', b't']
+    );
+
+    meta_event_test!(
+        track_name_event,
+        MetaEvent::TrackName("Track 1".to_string()),
+        vec![0xFF, 0x03, 0x07, b'T', b'r', b'a', b'c', b'k', b' ', b'1']
+    );
+
+    meta_event_test!(
+        instrument_name_event,
+        MetaEvent::InstrumentName("Piano".to_string()),
+        vec![0xFF, 0x04, 0x05, b'P', b'i', b'a', b'n', b'o']
+    );
+
+    meta_event_test!(
+        lyric_event,
+        MetaEvent::Lyric("Lyrics".to_string()),
+        vec![0xFF, 0x05, 0x06, b'L', b'y', b'r', b'i', b'c', b's']
+    );
+
+    meta_event_test!(
+        marker_event,
+        MetaEvent::Marker("Marker".to_string()),
+        vec![0xFF, 0x06, 0x06, b'M', b'a', b'r', b'k', b'e', b'r']
+    );
+
+    meta_event_test!(
+        cue_point_event,
+        MetaEvent::CuePoint(vec![0x01, 0x02]),
+        vec![0xFF, 0x07, 0x02, 0x01, 0x02]
+    );
+
+    meta_event_test!(
+        midi_channel_prefix_event,
+        MetaEvent::MidiChannelPrefix(0x05),
+        vec![0xFF, 0x20, 0x01, 0x05]
+    );
+
+    meta_event_test!(
+        end_of_track_event,
+        MetaEvent::EndOfTrack,
+        vec![0xFF, 0x2F, 0x00]
+    );
+
+    meta_event_test!(
+        smpte_offset_event,
+        MetaEvent::SmpteOffset(SmpteOffset {
+            hours: 1,
+            minutes: 32,
+            seconds: 21,
+            frames: 16,
+            subframes: 0,
+        }),
+        vec![0xFF, 0x54, 0x05, 0x01, 0x20, 0x15, 0x10, 0x00]
+    );
+
+    meta_event_test!(
+        key_signature_event,
+        MetaEvent::KeySignature(KeySignature {
+            sharps_flats: 0,
+            major_minor: false,
+        }),
+        vec![0xFF, 0x59, 0x02, 0x00, 0x00]
+    );
+
+    meta_event_test!(
+        sequencer_specific_event,
+        MetaEvent::SequencerSpecific(vec![0x01, 0x02, 0x03]),
+        vec![0xFF, 0x7F, 0x03, 0x01, 0x02, 0x03]
+    );
+
+    meta_event_test!(
+        unknown_raw_event,
+        MetaEvent::UnknownRaw(0x99, vec![0x01, 0x02, 0x03]),
+        vec![0xFF, 0x99, 0x03, 0x01, 0x02, 0x03]
+    );
 }

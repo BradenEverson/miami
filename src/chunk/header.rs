@@ -5,6 +5,8 @@ use thiserror::Error;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+use crate::writer::MidiWriteable;
+
 /// Header chunk data, including format, ntrks and division as 3 16 bit unsigned integers
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -15,6 +17,19 @@ pub struct HeaderChunk {
     ntrks: u16,
     /// Time signature/division
     division: Division,
+}
+
+impl MidiWriteable for HeaderChunk {
+    fn to_midi_bytes(self) -> Vec<u8> {
+        let mut bytes = self.format.to_midi_bytes();
+        let ntrks = self.ntrks.to_midi_bytes();
+        let division = self.division.to_midi_bytes();
+
+        bytes.extend(ntrks.iter());
+        bytes.extend(division.iter());
+
+        bytes
+    }
 }
 
 impl TryFrom<(u16, u16, u16)> for HeaderChunk {
@@ -41,6 +56,19 @@ pub enum Format {
     One,
     /// The file contains one or more sequentially independent single-track patterns
     Two,
+}
+
+impl MidiWriteable for Format {
+    fn to_midi_bytes(self) -> Vec<u8> {
+        vec![
+            0,
+            match self {
+                Format::Zero => 0,
+                Format::One => 1,
+                Format::Two => 2,
+            },
+        ]
+    }
 }
 
 /// Error struct representing an invalid format specifier
@@ -81,6 +109,15 @@ pub struct SmpteTicks {
     tpf: u8,
 }
 
+impl MidiWriteable for SmpteTicks {
+    fn to_midi_bytes(self) -> Vec<u8> {
+        const MASK: u8 = 0x80;
+        let smpte = self.smpte.to_be_bytes()[0] | MASK;
+
+        vec![smpte, self.tpf]
+    }
+}
+
 impl From<u16> for Division {
     fn from(value: u16) -> Self {
         const MASK: u16 = 0x7FFF;
@@ -106,6 +143,15 @@ impl From<u16> for Division {
                 Division::TimeCodeBased(ticks)
             }
             _ => unreachable!("Only msb is checked and can therefore only be 1 or 0"),
+        }
+    }
+}
+
+impl MidiWriteable for Division {
+    fn to_midi_bytes(self) -> Vec<u8> {
+        match self {
+            Self::Metrical(metrical) => metrical.to_midi_bytes(),
+            Self::TimeCodeBased(smpte) => smpte.to_midi_bytes(),
         }
     }
 }
