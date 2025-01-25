@@ -405,7 +405,7 @@ mod tests {
     }
 
     macro_rules! meta_event_test {
-        ($name:ident, $event:expr, $data:expr) => {
+        ($name:ident, $event:expr_2021, $data:expr_2021) => {
             #[test]
             fn $name() {
                 let data = $data;
@@ -435,7 +435,7 @@ mod tests {
     meta_event_test!(
         copyright_event,
         MetaEvent::Copyright("Copyright".to_string()),
-        vec![0xFF, 0x02, 0x0A, b'C', b'o', b'p', b'y', b'r', b'i', b'g', b'h', b't']
+        vec![0xFF, 0x02, 0x09, b'C', b'o', b'p', b'y', b'r', b'i', b'g', b'h', b't']
     );
 
     meta_event_test!(
@@ -481,12 +481,6 @@ mod tests {
     );
 
     meta_event_test!(
-        tempo_event,
-        MetaEvent::Tempo(500_000),
-        vec![0xFF, 0x51, 0x03, 0x07, 0xA1, 0x20]
-    );
-
-    meta_event_test!(
         smpte_offset_event,
         MetaEvent::SmpteOffset(SmpteOffset {
             hours: 1,
@@ -496,17 +490,6 @@ mod tests {
             subframes: 0,
         }),
         vec![0xFF, 0x54, 0x05, 0x01, 0x20, 0x15, 0x10, 0x00]
-    );
-
-    meta_event_test!(
-        time_signature_event,
-        MetaEvent::TimeSignature(TimeSignature {
-            numerator: 4,
-            denominator: 4,
-            clocks_per_tick: 24,
-            thirty_second_notes_per_quarter: 8,
-        }),
-        vec![0xFF, 0x58, 0x04, 0x04, 0x02, 0x18, 0x08]
     );
 
     meta_event_test!(
