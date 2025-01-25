@@ -1,6 +1,6 @@
 [package]
 name = "miami"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["BradenEverson <bradeneverson@gmail.com>"]
 description = "Minimal dependency MIDI file format parser"
 edition = "2021"
