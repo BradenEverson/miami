@@ -1,8 +1,17 @@
-//! Utility methods for writing a MIDI file
+//! The `MidiWriteable` trait is central to translating data from miami’s internal representations
+//! back into raw MIDI bytes. In other words, if `MidiReadable` is about parsing MIDI bytes *into*
+//! Rust types, `MidiWriteable` does the opposite—taking those parsed types and converting them
+//! into the canonical MIDI byte format. This is particularly useful when you have manipulated
+//! or inspected MIDI data in your application and need to write it back to a file or stream.
 
 use crate::Chunk;
 
-/// A chunk of data that can be converted to MIDI format bytes
+/// A trait for types that can be encoded as MIDI-format bytes.
+///
+/// `MidiWriteable` is implemented by several primitive numeric types for convenience,
+/// as well as by [`Chunk`] and other composite types in the `miami` library. This trait
+/// makes it straightforward to transform parsed or constructed MIDI data back into a
+/// binary stream for writing to a file or over a network connection.
 pub trait MidiWriteable {
     /// Converts the data to a MIDI format byte sequence
     fn to_midi_bytes(self) -> Vec<u8>;

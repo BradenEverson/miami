@@ -86,8 +86,7 @@ impl MidiWriteable for MetaEvent {
             Self::EndOfTrack => vec![],
             Self::Tempo(val) => {
                 let res = val.to_midi_bytes();
-                let res = res[1..].to_vec();
-                res
+                res[1..].to_vec()
             }
             Self::SmpteOffset(val) => val.to_midi_bytes(),
             Self::TimeSignature(val) => val.to_midi_bytes(),
