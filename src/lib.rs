@@ -62,6 +62,7 @@
 
 pub mod chunk;
 pub mod reader;
+pub mod writer;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
