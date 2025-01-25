@@ -64,8 +64,99 @@ pub mod chunk;
 pub mod reader;
 pub mod writer;
 
+use chunk::{header::HeaderChunk, track::TrackChunk, ChunkParseError, ParsedChunk};
+use reader::MidiStream;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
+
+/// An entire MIDI file as a raw sequence of parsed chunks
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct RawMidi {
+    /// All raw chunks as ParsedChunks
+    chunks: Vec<ParsedChunk>,
+}
+
+/// A MIDI File "cleaned" by enforcing a single header chunk and an arbitrary amount of Track
+/// chunks
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct Midi {
+    /// The header chunk
+    header: HeaderChunk,
+    /// All subsequent track chunks
+    tracks: Vec<TrackChunk>,
+}
+
+/// An error that may occur when verifying that a Raw Midi struct is sanitized into a clean MIDI
+/// format
+#[derive(Debug, Clone, Copy, PartialEq, Error)]
+pub enum MidiSanitizerError {
+    /// Sequence doesn't start with a header
+    #[error("First ParsedChunk in sequence isn't a header")]
+    NoStartHeader,
+    /// Too many headers
+    #[error("More than one header chunk identified")]
+    TooManyHeaders,
+    /// No chunks at all
+    #[error("No chunks present")]
+    NoChunks,
+}
+
+impl TryFrom<RawMidi> for Midi {
+    type Error = MidiSanitizerError;
+    fn try_from(value: RawMidi) -> Result<Self, Self::Error> {
+        let mut chunks = value.chunks.into_iter();
+        let first = chunks.next().ok_or(MidiSanitizerError::NoChunks)?;
+        let header = match first {
+            ParsedChunk::Header(header) => header,
+            _ => return Err(MidiSanitizerError::NoStartHeader),
+        };
+        let mut tracks = vec![];
+
+        for track in chunks {
+            match track {
+                ParsedChunk::Track(track) => tracks.push(track),
+                _ => return Err(MidiSanitizerError::TooManyHeaders),
+            }
+        }
+
+        Ok(Self { header, tracks })
+    }
+}
+
+impl RawMidi {
+    /// Constructs a new MIDI instance from a stream of MIDI bytes
+    pub fn try_from_midi_stream<STREAM>(stream: STREAM) -> Result<Self, ChunkParseError>
+    where
+        STREAM: MidiStream,
+    {
+        Self::try_from(StreamWrapper(stream))
+    }
+}
+
+/// A wrapper to allow TryFrom implementations for `MidiStream` implementors
+pub struct StreamWrapper<STREAM>(STREAM)
+where
+    STREAM: MidiStream;
+impl<STREAM> TryFrom<StreamWrapper<STREAM>> for RawMidi
+where
+    STREAM: MidiStream,
+{
+    type Error = ChunkParseError;
+    fn try_from(value: StreamWrapper<STREAM>) -> Result<Self, Self::Error> {
+        let mut data = value.0;
+        let mut chunks = vec![];
+
+        while let Some(parsed) = data.read_chunk_data_pair().map(ParsedChunk::try_from) {
+            let parsed = parsed?;
+            chunks.push(parsed);
+        }
+
+        Ok(Self { chunks })
+    }
+}
 
 /// Represents a raw MIDI Chunk.
 /// A MIDI Chunk consists of a 4-character ASCII type identifier and a 32-bit unsigned integer specifying the length of its data.
