@@ -48,16 +48,13 @@ A `RawMidi` can also be sanitized and upgraded into a `Midi` struct that contain
 let sanitized: Midi = midi.check_into_midi().expect("Upgrade to Midi");
 ```
 
-Writing a set of ParsedChunks to a file:
+Writing a `RawMidi` or `Midi` to a file:
 
 ```rust
-
 let mut output = File::create("output.mid").unwrap();
-for parsed in parsed_chunks {
-    let bytes = parsed.to_midi_bytes();
-    output.write(&bytes).expect("Write bytes to file");
-}
 
+// Works for `Midi` and `RawMidi` types!
+output.write_all(&midi.to_midi_bytes()).unwrap()
 ```
 
 ## Core Concepts
