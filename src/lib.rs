@@ -69,13 +69,35 @@ use reader::MidiStream;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use writer::MidiWriteable;
 
 /// An entire MIDI file as a raw sequence of parsed chunks
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct RawMidi {
     /// All raw chunks as ParsedChunks
-    chunks: Vec<ParsedChunk>,
+    pub chunks: Vec<ParsedChunk>,
+}
+
+impl RawMidi {
+    /// Constructs a new MIDI instance from a stream of MIDI bytes
+    pub fn try_from_midi_stream<STREAM>(stream: STREAM) -> Result<Self, ChunkParseError>
+    where
+        STREAM: MidiStream,
+    {
+        Self::try_from(StreamWrapper(stream))
+    }
+}
+
+impl MidiWriteable for RawMidi {
+    fn to_midi_bytes(self) -> Vec<u8> {
+        let mut res = vec![];
+        for chunk in self.chunks {
+            res.extend(chunk.to_midi_bytes());
+        }
+
+        res
+    }
 }
 
 /// A MIDI File "cleaned" by enforcing a single header chunk and an arbitrary amount of Track
@@ -84,9 +106,22 @@ pub struct RawMidi {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Midi {
     /// The header chunk
-    header: HeaderChunk,
+    pub header: HeaderChunk,
     /// All subsequent track chunks
-    tracks: Vec<TrackChunk>,
+    pub tracks: Vec<TrackChunk>,
+}
+
+impl MidiWriteable for Midi {
+    fn to_midi_bytes(self) -> Vec<u8> {
+        let mut res = vec![];
+        res.extend(ParsedChunk::Header(self.header).to_midi_bytes());
+        for track in self.tracks {
+            let wrapped = ParsedChunk::Track(track);
+            res.extend(wrapped.to_midi_bytes());
+        }
+
+        res
+    }
 }
 
 /// An error that may occur when verifying that a Raw Midi struct is sanitized into a clean MIDI
@@ -123,16 +158,6 @@ impl TryFrom<RawMidi> for Midi {
         }
 
         Ok(Self { header, tracks })
-    }
-}
-
-impl RawMidi {
-    /// Constructs a new MIDI instance from a stream of MIDI bytes
-    pub fn try_from_midi_stream<STREAM>(stream: STREAM) -> Result<Self, ChunkParseError>
-    where
-        STREAM: MidiStream,
-    {
-        Self::try_from(StreamWrapper(stream))
     }
 }
 
