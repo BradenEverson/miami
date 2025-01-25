@@ -84,7 +84,11 @@ impl MidiWriteable for MetaEvent {
             Self::CuePoint(val) => val,
             Self::MidiChannelPrefix(val) => val.to_midi_bytes(),
             Self::EndOfTrack => vec![],
-            Self::Tempo(val) => val.to_midi_bytes(),
+            Self::Tempo(val) => {
+                let res = val.to_midi_bytes();
+                let res = res[1..].to_vec();
+                res
+            }
             Self::SmpteOffset(val) => val.to_midi_bytes(),
             Self::TimeSignature(val) => val.to_midi_bytes(),
             Self::KeySignature(val) => val.to_midi_bytes(),
