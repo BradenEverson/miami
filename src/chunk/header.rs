@@ -60,11 +60,14 @@ pub enum Format {
 
 impl MidiWriteable for Format {
     fn to_midi_bytes(self) -> Vec<u8> {
-        vec![match self {
-            Format::Zero => 0,
-            Format::One => 1,
-            Format::Two => 2,
-        }]
+        vec![
+            0,
+            match self {
+                Format::Zero => 0,
+                Format::One => 1,
+                Format::Two => 2,
+            },
+        ]
     }
 }
 

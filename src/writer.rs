@@ -70,3 +70,38 @@ impl MidiWriteable for (Chunk, Vec<u8>) {
         bytes
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        chunk::ParsedChunk,
+        reader::{MidiReadable, MidiStream},
+        Chunk,
+    };
+
+    use super::MidiWriteable;
+
+    #[test]
+    fn header_chunk_saves_as_proper_bytes() {
+        let mut stream = "test/test.mid"
+            .get_midi_bytes()
+            .expect("Get MIDI bytes from source");
+        let expected = stream
+            .read_chunk_data_pair()
+            .map(|val| ParsedChunk::try_from(val))
+            .unwrap()
+            .unwrap();
+
+        let unparsed: (Chunk, Vec<u8>) = expected.clone().into();
+        let bytes = unparsed.to_midi_bytes();
+
+        let mut new_stream = bytes.into_iter();
+        let new_header = new_stream
+            .read_chunk_data_pair()
+            .map(|val| ParsedChunk::try_from(val))
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(expected, new_header)
+    }
+}
