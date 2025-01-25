@@ -1,7 +1,6 @@
 //! Chunk Definitions for parsed types and type headers
 
 use header::{HeaderChunk, InvalidFormat};
-use thiserror::Error;
 use track::TrackChunk;
 
 use crate::{
@@ -36,20 +35,38 @@ impl MidiWriteable for ParsedChunk {
 }
 
 /// Error type for attempting to parse from a raw chunk to a parsed one
-#[derive(Debug, Error)]
+#[derive(Debug)]
 pub enum ChunkParseError {
     /// Invalid format in parsing a header
-    #[error("Invalid Format Specified")]
-    InvalidFormat(#[from] InvalidFormat),
+    InvalidFormat(InvalidFormat),
     /// Type tag is not registered
-    #[error("Unknown Chunk Type")]
     UnknownType,
     /// Random todo during debugging
-    #[error("Development TODO")]
     Todo(&'static str),
     /// Error parsing track
-    #[error("Track parsing error")]
-    TrackParseError(#[from] track::TrackError),
+    TrackParseError(track::TrackError),
+}
+
+impl core::error::Error for ChunkParseError {}
+impl core::fmt::Display for ChunkParseError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::InvalidFormat(_) => write![f, "Invalid Format Specified"],
+            Self::UnknownType => write![f, "Unknown Chunk Type"],
+            Self::Todo(s) => write![f, "Development TODO: {s}"],
+            Self::TrackParseError(_) => write![f, "Track parsing error"],
+        }
+    }
+}
+impl From<InvalidFormat> for ChunkParseError {
+    fn from(f: InvalidFormat) -> Self {
+        Self::InvalidFormat(f)
+    }
+}
+impl From<track::TrackError> for ChunkParseError {
+    fn from(f: track::TrackError) -> Self {
+        Self::TrackParseError(f)
+    }
 }
 
 impl From<ParsedChunk> for (Chunk, Vec<u8>) {

@@ -1,7 +1,5 @@
 //! Status parsing trait and implementation
 
-use thiserror::Error;
-
 use crate::{reader::Yieldable, writer::MidiWriteable};
 
 #[cfg(feature = "serde")]
@@ -72,10 +70,15 @@ impl MidiEvent {
 }
 
 /// Error type for an unsupported error type
-#[derive(Error, Debug, Clone, Copy, PartialEq)]
-#[error("Unsupported Status Code {0}")]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct UnsupportedStatusCode(u8);
 
+impl core::error::Error for UnsupportedStatusCode {}
+impl core::fmt::Display for UnsupportedStatusCode {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write![f, "Unsupported Status Code {}", self.0]
+    }
+}
 /// Wrapper around iterator to prevent trait implementation sillyness
 pub struct IteratorWrapper<T>(pub T);
 impl<ITER> TryFrom<IteratorWrapper<&mut ITER>> for MidiEvent

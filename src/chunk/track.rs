@@ -5,7 +5,6 @@ use std::string::FromUtf8Error;
 use event::{IteratorWrapper, MidiEvent, UnsupportedStatusCode};
 use meta::MetaEvent;
 use sysex::SysexEvent;
-use thiserror::Error;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -17,32 +16,57 @@ pub mod meta;
 pub mod sysex;
 
 /// Error types from parsing a track
-#[derive(Error, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TrackError {
     /// End of File Marker, ends the iterator
-    #[error("Reached end of line at end of parsing")]
     EOF,
     /// End of file while parsing Marker
-    #[error("Reached end of chunk before done parsing")]
     OutOfSpace,
     /// Invalid chunk format
-    #[error("Invalid Track Format")]
     InvalidFormat,
     /// MIDI Channel Event status code is invalid
-    #[error("Invalid Status Code for MIDI Channel Event {0}")]
-    UnsupportedStatusCode(#[from] UnsupportedStatusCode),
+    UnsupportedStatusCode(UnsupportedStatusCode),
     /// Meta Event is in an invalid format
-    #[error("Meta Event data is in an invalid format")]
     InvalidMetaEventData,
     /// Invalid start tag for sysex message
-    #[error("Invalid SysEx Message Start")]
     InvalidSysExMessage,
     /// Missing ending to exclusive message
-    #[error("Missing end of System Exclusive Message 0xF7 byte")]
     MissingEndOfExclusive,
     /// Error while parsing a UTF8 String for metadata
-    #[error("Failed to parse utf-8 encoded string in the meta track event")]
-    UtfParseError(#[from] FromUtf8Error),
+    UtfParseError(FromUtf8Error),
+}
+
+impl core::error::Error for TrackError {}
+impl core::fmt::Display for TrackError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::EOF => write![f, "Reached end of line at end of parsing"],
+            Self::OutOfSpace => write![f, "Reached end of chunk before done parsing"],
+            Self::InvalidFormat => write![f, "Invalid Track Format"],
+            Self::UnsupportedStatusCode(e) => {
+                write![f, "Invalid Status Code for MIDI Channel Event {e}"]
+            }
+            Self::InvalidMetaEventData => write![f, "Meta Event data is in an invalid format"],
+            Self::InvalidSysExMessage => write![f, "Invalid SysEx Message Start"],
+            Self::MissingEndOfExclusive => {
+                write![f, "Missing end of System Exclusive Message 0xF7 byte"]
+            }
+            Self::UtfParseError(_) => write![
+                f,
+                "Failed to parse utf-8 encoded string in the meta track event"
+            ],
+        }
+    }
+}
+impl From<UnsupportedStatusCode> for TrackError {
+    fn from(f: UnsupportedStatusCode) -> Self {
+        Self::UnsupportedStatusCode(f)
+    }
+}
+impl From<FromUtf8Error> for TrackError {
+    fn from(f: FromUtf8Error) -> Self {
+        Self::UtfParseError(f)
+    }
 }
 
 /// A track chunk, containing one or more MTrk events
